@@ -66,7 +66,7 @@ class AIAnalysisOutput(BaseModel):
     clinical_reasoning: str = Field(..., description="Step-by-step logic detailing why this care level fits clinical inputs.")
     guidance_notes: str = Field(..., description="Safe pre-hospitalization advice.")
     emergency_detected: bool
-    risk_score: int = Field(0, ge=0, le=10) # 0-10 priority score
+    risk_score: int = Field(0, ge=0, le=100) # 0-100 priority score
     mental_health_flag: bool = False
     detected_language: str
 

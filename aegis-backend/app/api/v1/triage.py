@@ -18,20 +18,20 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @router.post("/voice")
 async def process_voice_triage(
     background_tasks: BackgroundTasks,
-    audio_file: UploadFile = File(...)
+    file: UploadFile = File(...)
 ):
     """
     Multimodal ingestion controller for voice-based triage.
     Transcribes regional dialects and pipes results into the clinical graph.
     """
     file_id = str(uuid.uuid4())
-    file_ext = audio_file.filename.split(".")[-1]
+    file_ext = file.filename.split(".")[-1]
     file_path = os.path.join(UPLOAD_DIR, f"{file_id}.{file_ext}")
 
     try:
         # 1. Stream audio data asynchronously into local file blocks
         async with aiofiles.open(file_path, 'wb') as out_file:
-            while content := await audio_file.read(1024 * 64):
+            while content := await file.read(1024 * 64):
                 await out_file.write(content)
 
         # 2. Send to gemini-2.5-flash with multimodal transcription instruction
@@ -50,7 +50,7 @@ async def process_voice_triage(
             model="gemini-2.5-flash",
             contents=[
                 transcription_prompt,
-                types.Part.from_bytes(data=audio_bytes, mime_type=audio_file.content_type)
+                types.Part.from_bytes(data=audio_bytes, mime_type=file.content_type)
             ]
         )
         
@@ -73,10 +73,18 @@ async def process_voice_triage(
         # 4. Queue background tasks
         background_tasks.add_task(compile_health_report, str(session_id))
 
+        analysis_data = result.get("analysis", {})
+        if hasattr(analysis_data, "model_dump"):
+            analysis_data = analysis_data.model_dump()
+        elif hasattr(analysis_data, "dict"):
+            analysis_data = analysis_data.dict()
+
         return {
-            "session_id": session_id,
+            "session_id": str(session_id),
             "transcription": transcribed_text,
-            "analysis": result.get("analysis"),
+            "care_level": analysis_data.get("care_level", "UNKNOWN") if isinstance(analysis_data, dict) else "UNKNOWN",
+            "guidance_notes": analysis_data.get("guidance_notes", "No notes generated.") if isinstance(analysis_data, dict) else "No notes generated.",
+            "extracted_symptoms": analysis_data.get("extracted_symptoms", []) if isinstance(analysis_data, dict) else [],
             "telemedicine_url": result.get("telemedicine_url"),
             "status": "processed"
         }

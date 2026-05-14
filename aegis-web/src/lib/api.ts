@@ -49,7 +49,7 @@ export async function postAudioTriage(audioBlob: Blob, sessionId: string): Promi
 }
 
 export async function fetchDoctorQueue(): Promise<DoctorQueueItem[]> {
-  const res = await fetch(`${API_BASE}/api/v1/doctor/dashboard/queue`, { 
+  const res = await fetch(`${API_BASE}/api/v1/doctor/queue`, { 
     cache: 'no-store',
     headers: { 'Content-Type': 'application/json' }
   });
