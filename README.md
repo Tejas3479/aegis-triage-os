@@ -29,6 +29,7 @@ Dive deeper into our enterprise architecture:
 1. [System Architecture & Pipeline](docs/ARCHITECTURE.md)
 2. [AI, NLP, & Privacy Models](docs/MODELS_AND_NLP.md)
 3. [Algorithmic Risk Scoring & XAI](docs/RISK_SCORING.md)
+4. [Enterprise Innovations & "Wow Factor"](docs/INNOVATIONS.md)
 
 ## 🚀 Local Deployment
 
