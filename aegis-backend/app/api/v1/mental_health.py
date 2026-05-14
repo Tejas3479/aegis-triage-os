@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import MentalHealthAssessment
 from app.services.database import db_client
@@ -13,17 +14,21 @@ async def submit_assessment(session_id: str, assessment: MentalHealthAssessment)
     """
     try:
         # 1. Update the triage session flag
-        db_client.client.table("triage_sessions")\
-            .update({"mental_health_flag": True})\
-            .eq("id", session_id)\
-            .execute()
+        await asyncio.to_thread(
+            db_client.client.table("triage_sessions")
+            .update({"mental_health_flag": True})
+            .eq("id", session_id)
+            .execute
+        )
             
         # 2. Log assessment metrics in medical audit logs
-        db_client.client.table("medical_audit_logs").insert({
-            "session_id": session_id,
-            "symptoms": {"mental_health": assessment.model_dump()},
-            "model_metadata": {"assessment_type": "formal_psychometric"}
-        }).execute()
+        await asyncio.to_thread(
+            db_client.client.table("medical_audit_logs").insert({
+                "session_id": session_id,
+                "symptoms": {"mental_health": assessment.model_dump()},
+                "model_metadata": {"assessment_type": "formal_psychometric"}
+            }).execute
+        )
         
         return {
             "status": "logged",

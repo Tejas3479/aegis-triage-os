@@ -13,7 +13,7 @@ logger = logging.getLogger("aegis_core")
 REPORTS_DIR = "storage/reports"
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
-async def compile_health_report(session_id: str):
+def compile_health_report(session_id: str):
     """
     Lightweight asynchronous EHR compiler using ReportLab.
     Uploads results to Supabase Storage and updates the database record.

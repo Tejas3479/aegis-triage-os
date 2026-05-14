@@ -1,4 +1,5 @@
 import hmac
+import asyncio
 import hashlib
 import logging
 from fastapi import APIRouter, Header, HTTPException, Request
@@ -70,10 +71,12 @@ async def sync_wearable_data(payload: Dict[str, Any]):
             emergency_triggered = True
             
             # Update DB triage session to EMERGENCY_ROOM
-            db_client.client.table("triage_sessions")\
-                .update({"care_level": CareLevel.EMERGENCY_ROOM, "risk_score": 10})\
-                .eq("id", session_id)\
-                .execute()
+            await asyncio.to_thread(
+                db_client.client.table("triage_sessions")
+                .update({"care_level": CareLevel.EMERGENCY_ROOM, "risk_score": 100})
+                .eq("id", session_id)
+                .execute
+            )
             
             # Inject emergency flag into the graph state
             graph_engine.executor.update_state(

@@ -1,4 +1,5 @@
 import logging
+import asyncio
 import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException
@@ -16,7 +17,9 @@ async def detect_outbreaks():
     """
     try:
         # 1. Extract tracking coordinates from the database
-        response = db_client.client.table("patients").select("geo_latitude, geo_longitude").execute()
+        response = await asyncio.to_thread(
+            db_client.client.table("patients").select("geo_latitude, geo_longitude").execute
+        )
         data = response.data
         
         if not data or len(data) < 5:
