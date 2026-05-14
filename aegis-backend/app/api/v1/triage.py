@@ -46,7 +46,7 @@ async def process_voice_triage(
             "Accurately map the spoken symptoms to clear text while fully preserving clinical intent."
         )
 
-        response = llm_router.client.models.generate_content(
+        response = await llm_router.client.aio.models.generate_content(
             model="gemini-2.5-flash",
             contents=[
                 transcription_prompt,

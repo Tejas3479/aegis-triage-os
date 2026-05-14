@@ -19,7 +19,13 @@ export const VoiceTriage: React.FC<VoiceTriageProps> = ({ sessionId, onAnalysisR
   const startRecording = async () => {
     audioChunksRef.current = [];
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { 
+          echoCancellation: true, 
+          noiseSuppression: true, 
+          autoGainControl: true 
+        } 
+      });
       const options = MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : undefined;
       const mediaRecorder = new MediaRecorder(stream, options);
 

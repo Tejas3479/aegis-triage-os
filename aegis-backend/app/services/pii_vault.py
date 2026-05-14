@@ -16,8 +16,6 @@ class PrivacyInterceptor:
     # Fallback regex patterns for Indian national phone structures, emails, and names
     PHONE_PATTERN = r"(?:\+91|0)?[6-9]\d{9}"
     EMAIL_PATTERN = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
-    # Simplified name pattern for fallback (detects common capitalized patterns)
-    NAME_PATTERN = r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b"
     
     REDACTION_LABEL = "[ANONYMIZED_PATIENT_DATA]"
 
@@ -71,9 +69,6 @@ class PrivacyInterceptor:
         sanitized = re.sub(self.PHONE_PATTERN, self.REDACTION_LABEL, sanitized)
         # Redact Emails
         sanitized = re.sub(self.EMAIL_PATTERN, self.REDACTION_LABEL, sanitized)
-        # Redact Names (Heuristic fallback)
-        # Note: We apply this carefully to avoid over-redacting clinical terms
-        sanitized = re.sub(self.NAME_PATTERN, self.REDACTION_LABEL, sanitized)
         
         return sanitized
 

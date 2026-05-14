@@ -47,8 +47,8 @@ class ModelRouter:
                 f"'detected_lang' (ISO code), and 'complexity_score' (float 0.0 to 1.0).\n\nQuery: {sanitized_text}"
             )
             
-            # Forcing JSON schema response
-            response = self.client.models.generate_content(
+            # Forcing JSON schema response asynchronously
+            response = await self.client.aio.models.generate_content(
                 model=self.fast_model,
                 contents=analysis_prompt,
                 config=types.GenerateContentConfig(

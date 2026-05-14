@@ -96,8 +96,8 @@ class GraphEngine:
         """
         
         try:
-            # Enforce structured output via the router
-            response = llm_router.client.models.generate_content(
+            # Enforce structured output via the router asynchronously
+            response = await llm_router.client.aio.models.generate_content(
                 model="gemini-2.5-pro",
                 contents=f"{system_prompt}\n\nClinical Dossier:\n{dossier}",
                 config=types.GenerateContentConfig(
@@ -206,7 +206,7 @@ class GraphEngine:
         if analysis and analysis.care_level == CareLevel.HOME_CARE:
             prompt = f"Generate 3 safe monitoring guidelines for symptoms: {', '.join(analysis.extracted_symptoms)}"
             try:
-                response = llm_router.client.models.generate_content(
+                response = await llm_router.client.aio.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=prompt
                 )
