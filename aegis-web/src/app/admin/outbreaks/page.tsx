@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Radar, AlertOctagon, Activity, MapPin, RefreshCw } from 'lucide-react';
 import { fetchOutbreakClusters, OutbreakCluster } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function CommandCenter() {
   const [clusters, setClusters] = useState<OutbreakCluster[]>([]);
@@ -33,8 +34,10 @@ export default function CommandCenter() {
       });
       setClusters(sorted);
       setLastUpdated(new Date());
-    } catch (error) {
-      console.error("HDBSCAN sync failure", error);
+    } catch (error: unknown) {
+      toast.error("Network Disconnected", {
+        description: error instanceof Error ? error.message : "Sync failed."
+      });
     } finally {
       setLoading(false);
     }

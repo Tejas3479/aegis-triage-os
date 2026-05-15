@@ -23,7 +23,7 @@ export const MentalHealthCard: React.FC<MentalHealthCardProps> = ({ sessionId })
     try {
       await submitMentalAssessment(sessionId, score);
       setIsSuccess(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('Network error. Failed to log assessment.');
     } finally {
       setIsSubmitting(false);

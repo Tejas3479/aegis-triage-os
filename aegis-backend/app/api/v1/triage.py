@@ -2,7 +2,8 @@ import logging
 import os
 import aiofiles
 import uuid
-from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException
+import asyncio
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException, Form
 from google.genai import types
 from app.services.model_router import llm_router
 from app.services.graph_engine import graph_engine
@@ -18,6 +19,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @router.post("/voice")
 async def process_voice_triage(
     background_tasks: BackgroundTasks,
+    session_id: str = Form(...),
     file: UploadFile = File(...)
 ):
     """
@@ -58,7 +60,6 @@ async def process_voice_triage(
         logger.info(f"Voice transcribed: {transcribed_text[:100]}...")
 
         # 3. Pipe payload into LangGraph pipeline
-        session_id = uuid.uuid4()
         # Initializing state for the graph
         initial_state = {
             "session_id": session_id,
@@ -67,8 +68,15 @@ async def process_voice_triage(
             "emergency_override": False
         }
         
-        # Execute Graph (Sync wrapper for demonstration or use await if possible)
-        result = await graph_engine.executor.ainvoke(initial_state, config={"configurable": {"thread_id": str(session_id)}})
+        # Execute Graph with Timeout Protection
+        try:
+            result = await asyncio.wait_for(
+                graph_engine.executor.ainvoke(initial_state, config={"configurable": {"thread_id": str(session_id)}}),
+                timeout=45.0
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"LangGraph execution timed out for session {session_id}")
+            raise HTTPException(status_code=504, detail="AI Graph Engine timed out.")
 
         # 4. Queue background tasks
         background_tasks.add_task(compile_health_report, str(session_id))

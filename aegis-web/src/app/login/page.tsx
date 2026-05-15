@@ -7,6 +7,7 @@ import { Lock, Loader2, ShieldCheck } from 'lucide-react';
 import { loginDoctor } from '@/lib/api';
 
 export default function LoginGateway() {
+  const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,11 +18,15 @@ export default function LoginGateway() {
     setLoading(true);
     setError('');
     try {
-      const token = await loginDoctor(pin);
+      const token = await loginDoctor(username, pin);
       localStorage.setItem('aegis_token', token);
       router.push('/doctor');
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Authentication failed');
+      } else {
+        setError('Authentication failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -44,6 +49,19 @@ export default function LoginGateway() {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
+              <label className="text-xs font-mono text-slate-500 uppercase tracking-widest">Clinical Username</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-md py-3 px-4 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-mono tracking-widest transition-all"
+                  placeholder="doctor_smith"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
               <label className="text-xs font-mono text-slate-500 uppercase tracking-widest">Clinical Access PIN</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -56,7 +74,6 @@ export default function LoginGateway() {
                   required
                 />
               </div>
-              <p className="text-[10px] text-slate-500 font-mono text-right">HINT: aegis2026</p>
             </div>
             
             {error && (

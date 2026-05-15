@@ -75,12 +75,14 @@ export default function PatientTriageApp() {
       <OfflineBanner />
 
       {/* Header */}
-      <header className="px-6 py-4 border-b border-slate-900 bg-slate-950/80 backdrop-blur z-10">
-        <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          Aegis OS Triage
+      <header className="px-6 py-4 border-b border-white/5 bg-slate-950/40 backdrop-blur-xl z-10 shadow-lg sticky top-0">
+        <h1 className="text-xl font-extrabold tracking-tighter flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]"></span>
+          <span className="bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">
+            Aegis OS Triage
+          </span>
         </h1>
-        <p className="text-xs text-slate-500 font-mono mt-1">Session ID: {sessionId.substring(0, 8)}</p>
+        <p className="text-[10px] text-slate-500 font-mono mt-1 uppercase tracking-widest">Session // {sessionId.substring(0, 8)}</p>
       </header>
 
       {/* Chat Area */}
@@ -90,10 +92,10 @@ export default function PatientTriageApp() {
             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl p-4 ${
                 msg.role === 'user' 
-                  ? 'bg-indigo-600 text-white rounded-br-sm' 
+                  ? 'bg-indigo-600 text-white rounded-br-sm shadow-lg' 
                   : msg.role === 'system' 
                     ? 'bg-slate-900/50 border border-slate-800 text-slate-400 text-xs font-mono rounded-bl-sm'
-                    : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-sm'
+                    : 'bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 text-slate-200 rounded-bl-sm shadow-lg transition-all duration-500 hover:shadow-indigo-500/10'
               }`}>
                 {msg.content}
               </div>

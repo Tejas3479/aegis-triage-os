@@ -29,8 +29,10 @@ export default function DoctorDashboard() {
       // Sort emergencies to the top
       const sorted = data.sort((a, b) => b.risk_score - a.risk_score);
       setQueue(sorted);
-    } catch (error) {
-      console.error("Failed to load queue", error);
+    } catch (error: unknown) {
+      toast.error("Network Disconnected", {
+        description: error instanceof Error ? error.message : "Sync failed."
+      });
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,7 @@ export default function DoctorDashboard() {
           </Button>
         </div>
 
-        <div className="rounded-md border border-slate-800 bg-slate-900/50 overflow-hidden">
+        <div className="rounded-md border border-white/10 bg-slate-900/40 backdrop-blur-lg shadow-2xl overflow-hidden">
           <Table>
             <TableHeader className="bg-slate-900">
               <TableRow className="border-slate-800 hover:bg-transparent">
@@ -79,7 +81,7 @@ export default function DoctorDashboard() {
                 return (
                   <TableRow 
                     key={patient.id} 
-                    className={`border-slate-800 ${isEmergency ? 'bg-red-950/20 hover:bg-red-950/40 border-l-4 border-l-red-600' : 'hover:bg-slate-900'}`}
+                    className={`border-slate-800 transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-500/10 cursor-pointer ${isEmergency ? 'bg-red-950/20 hover:bg-red-950/40 border-l-4 border-l-red-600' : 'hover:bg-slate-800/50'}`}
                   >
                     <TableCell className="font-mono text-xs text-slate-300">
                       {isEmergency && <AlertTriangle className="inline w-4 h-4 text-red-500 mr-2 animate-pulse" />}
@@ -110,8 +112,12 @@ export default function DoctorDashboard() {
                             try {
                               await downloadEHRPdf(patient.id);
                               toast.success('EHR PDF downloaded successfully.');
-                            } catch (error: any) {
-                              toast.error(error.message);
+                            } catch (error: unknown) {
+                              if (error instanceof Error) {
+                                toast.error(error.message);
+                              } else {
+                                toast.error('An unknown error occurred.');
+                              }
                             }
                           }}
                         >

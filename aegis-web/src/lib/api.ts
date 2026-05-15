@@ -49,12 +49,34 @@ export async function postAudioTriage(audioBlob: Blob, sessionId: string): Promi
 }
 
 export async function fetchDoctorQueue(): Promise<DoctorQueueItem[]> {
-  const res = await fetch(`${API_BASE}/api/v1/doctor/queue`, { 
-    cache: 'no-store',
-    headers: { 'Content-Type': 'application/json' }
-  });
-  if (!res.ok) throw new ApiError(res.status, 'Failed to resolve priority queue.');
-  return await res.json() as DoctorQueueItem[];
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/doctor/queue`, { 
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new ApiError(res.status, 'Failed to resolve priority queue.');
+    return await res.json() as DoctorQueueItem[];
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
+export interface HDBSCANResponse {
+  status: string;
+  cluster_count: number;
+  clusters: Array<{
+    cluster_id: number;
+    center_latitude: number;
+    center_longitude: number;
+    density_count: number;
+    radius_km_approx: number;
+  }>;
 }
 
 export interface OutbreakCluster {
@@ -67,27 +89,39 @@ export interface OutbreakCluster {
 }
 
 export async function fetchOutbreakClusters(): Promise<OutbreakCluster[]> {
-  const res = await fetch(`${API_BASE}/api/v1/public-health/outbreaks`, { cache: 'no-store' });
-  if (!res.ok) throw new ApiError(res.status, 'Failed to resolve HDBSCAN cluster data.');
-  
-  const rawData = await res.json();
-  const clusters = rawData.clusters || [];
-  
-  // Adapter Pattern: Map backend "density_count" to requested frontend schema
-  return clusters.map((c: any) => {
-    let risk: 'CRITICAL' | 'WARNING' | 'MONITOR' = 'MONITOR';
-    if (c.density_count > 15) risk = 'CRITICAL';
-    else if (c.density_count > 5) risk = 'WARNING';
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/public-health/outbreaks`, { 
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new ApiError(res.status, 'Failed to resolve HDBSCAN cluster data.');
     
-    return {
-      cluster_id: c.cluster_id,
-      disease_pattern: "Viral Respiratory (Presumed)",
-      case_count: c.density_count,
-      center_latitude: c.center_latitude,
-      center_longitude: c.center_longitude,
-      risk_level: risk
-    };
-  });
+    const rawData = await res.json() as HDBSCANResponse;
+    const clusters = rawData.clusters || [];
+    
+    // Adapter Pattern: Map backend "density_count" to requested frontend schema
+    return clusters.map((c) => {
+      let risk: 'CRITICAL' | 'WARNING' | 'MONITOR' = 'MONITOR';
+      if (c.density_count > 15) risk = 'CRITICAL';
+      else if (c.density_count > 5) risk = 'WARNING';
+      
+      return {
+        cluster_id: c.cluster_id,
+        disease_pattern: "Viral Respiratory (Presumed)",
+        case_count: c.density_count,
+        center_latitude: c.center_latitude,
+        center_longitude: c.center_longitude,
+        risk_level: risk
+      };
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
 }
 
 export async function downloadEHRPdf(sessionId: string): Promise<void> {
@@ -104,7 +138,13 @@ export async function downloadEHRPdf(sessionId: string): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-export async function submitMentalAssessment(sessionId: string, phq9Score: number): Promise<any> {
+export interface MentalHealthResponse {
+  status: string;
+  session_id?: string;
+  message?: string;
+}
+
+export async function submitMentalAssessment(sessionId: string, phq9Score: number): Promise<MentalHealthResponse> {
   // Logic bridge to satisfy the strict Pydantic backend schema
   const payload = {
     phq9_score: phq9Score,
@@ -120,13 +160,13 @@ export async function submitMentalAssessment(sessionId: string, phq9Score: numbe
   });
   
   if (!res.ok) throw new ApiError(res.status, 'Failed to log psychometric data.');
-  return await res.json();
+  return await res.json() as MentalHealthResponse;
 }
 
-export async function loginDoctor(pin: string): Promise<string> {
+export async function loginDoctor(username: string, pin: string): Promise<string> {
   // Utilizing standard OAuth2 Form Data structure required by FastAPI
   const formData = new FormData();
-  formData.append('username', 'doctor_smith'); // Fixed mapping to match backend mock DB
+  formData.append('username', username);
   formData.append('password', pin);
   
   const res = await fetch(`${API_BASE}/api/v1/auth/login`, { 
