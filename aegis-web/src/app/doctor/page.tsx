@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,15 @@ import { toast } from 'sonner';
 export default function DoctorDashboard() {
   const [queue, setQueue] = useState<DoctorQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  // Route Guard
+  useEffect(() => {
+    const token = localStorage.getItem('aegis_token');
+    if (!token) {
+      router.push('/login');
+    }
+  }, [router]);
 
   const loadQueue = async () => {
     setLoading(true);

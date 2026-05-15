@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,15 @@ export default function CommandCenter() {
   const [clusters, setClusters] = useState<OutbreakCluster[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const router = useRouter();
+
+  // Route Guard
+  useEffect(() => {
+    const token = localStorage.getItem('aegis_token');
+    if (!token) {
+      router.push('/login');
+    }
+  }, [router]);
 
   const loadClusters = async () => {
     setLoading(true);

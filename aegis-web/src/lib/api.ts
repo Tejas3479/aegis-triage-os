@@ -122,3 +122,19 @@ export async function submitMentalAssessment(sessionId: string, phq9Score: numbe
   if (!res.ok) throw new ApiError(res.status, 'Failed to log psychometric data.');
   return await res.json();
 }
+
+export async function loginDoctor(pin: string): Promise<string> {
+  // Utilizing standard OAuth2 Form Data structure required by FastAPI
+  const formData = new FormData();
+  formData.append('username', 'doctor_smith'); // Fixed mapping to match backend mock DB
+  formData.append('password', pin);
+  
+  const res = await fetch(`${API_BASE}/api/v1/auth/login`, { 
+    method: 'POST', 
+    body: formData 
+  });
+  
+  if (!res.ok) throw new Error('Invalid clinical PIN or credentials.');
+  const data = await res.json();
+  return data.access_token;
+}
