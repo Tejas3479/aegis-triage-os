@@ -1,49 +1,27 @@
-'use client';
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Download, RefreshCw, AlertTriangle, FileText, Video } from 'lucide-react';
-import { fetchDoctorQueue, DoctorQueueItem, downloadEHRPdf } from '@/lib/api';
-import { triggerFHIRDownload } from '@/lib/fhir-mapper';
-import { toast } from 'sonner';
+"use client";
+
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Download, RefreshCw, AlertTriangle, FileText, Video } from "lucide-react";
+import { downloadEHRPdf } from "@/lib/api";
+import { triggerFHIRDownload } from "@/lib/fhir-mapper";
+import { useQueue } from "@/hooks/useQueue";
+import { toast } from "sonner";
 
 export default function DoctorDashboard() {
-  const [queue, setQueue] = useState<DoctorQueueItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { queue, loading, refresh } = useQueue();
   const router = useRouter();
 
   // Route Guard
   useEffect(() => {
-    const token = localStorage.getItem('aegis_token');
+    const token = localStorage.getItem("aegis_token");
     if (!token) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [router]);
-
-  const loadQueue = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchDoctorQueue();
-      // Sort emergencies to the top
-      const sorted = data.sort((a, b) => b.risk_score - a.risk_score);
-      setQueue(sorted);
-    } catch (error: unknown) {
-      toast.error("Network Disconnected", {
-        description: error instanceof Error ? error.message : "Sync failed."
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadQueue();
-    // Auto-refresh every 10 seconds for real-time triage updates
-    const interval = setInterval(loadQueue, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
@@ -53,8 +31,8 @@ export default function DoctorDashboard() {
             <h1 className="text-3xl font-bold tracking-tight">Active Triage Queue</h1>
             <p className="text-slate-400 text-sm mt-1">Real-time algorithmic patient prioritization</p>
           </div>
-          <Button onClick={loadQueue} variant="outline" className="border-slate-800 hover:bg-slate-900" disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <Button onClick={() => refresh()} variant="outline" className="border-slate-800 hover:bg-slate-900" disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Sync EHR
           </Button>
         </div>
@@ -77,18 +55,18 @@ export default function DoctorDashboard() {
                 </TableRow>
               )}
               {queue.map((patient) => {
-                const isEmergency = patient.care_level === 'EMERGENCY_ROOM';
+                const isEmergency = patient.care_level === "EMERGENCY_ROOM";
                 return (
                   <TableRow 
                     key={patient.id} 
-                    className={`border-slate-800 transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-500/10 cursor-pointer ${isEmergency ? 'bg-red-950/20 hover:bg-red-950/40 border-l-4 border-l-red-600' : 'hover:bg-slate-800/50'}`}
+                    className={`border-slate-800 transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-500/10 cursor-pointer ${isEmergency ? "bg-red-950/20 hover:bg-red-950/40 border-l-4 border-l-red-600" : "hover:bg-slate-800/50"}`}
                   >
                     <TableCell className="font-mono text-xs text-slate-300">
                       {isEmergency && <AlertTriangle className="inline w-4 h-4 text-red-500 mr-2 animate-pulse" />}
                       {patient.patient_id.substring(0, 12)}...
                     </TableCell>
                     <TableCell>
-                      <Badge variant={patient.risk_score > 70 ? 'destructive' : 'secondary'}>
+                      <Badge variant={patient.risk_score > 70 ? "destructive" : "secondary"}>
                         {patient.risk_score}/100
                       </Badge>
                     </TableCell>
@@ -111,13 +89,9 @@ export default function DoctorDashboard() {
                           onClick={async () => {
                             try {
                               await downloadEHRPdf(patient.id);
-                              toast.success('EHR PDF downloaded successfully.');
+                              toast.success("EHR PDF downloaded successfully.");
                             } catch (error: unknown) {
-                              if (error instanceof Error) {
-                                toast.error(error.message);
-                              } else {
-                                toast.error('An unknown error occurred.');
-                              }
+                              toast.error(error instanceof Error ? error.message : "Download failed.");
                             }
                           }}
                         >
@@ -128,8 +102,8 @@ export default function DoctorDashboard() {
                           variant="ghost" 
                           className="hover:text-emerald-400 hover:bg-emerald-950/50"
                           onClick={() => {
-                            toast('Secure WebRTC Initializing', {
-                              description: 'Routing to encrypted telemedicine room...',
+                            toast("Secure WebRTC Initializing", {
+                              description: "Routing to encrypted telemedicine room...",
                             });
                           }}
                         >

@@ -9,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 logger = logging.getLogger("aegis_enterprise")
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
 class ObservabilityMiddleware(BaseHTTPMiddleware):

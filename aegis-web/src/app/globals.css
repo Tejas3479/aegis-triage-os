@@ -128,3 +128,54 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 8s infinite linear;
+  }
+
+  .animate-mesh {
+    animation: mesh 20s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes mesh {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.1) rotate(2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.mouse-glow-card {
+  position: relative;
+}
+
+.mouse-glow-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: radial-gradient(
+    600px circle at var(--mouse-x) var(--mouse-y),
+    rgba(99, 102, 241, 0.15),
+    transparent 40%
+  );
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.mouse-glow-card:hover::before {
+  opacity: 1;
+}

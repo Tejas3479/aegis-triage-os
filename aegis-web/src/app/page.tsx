@@ -1,93 +1,160 @@
-import Link from 'next/link';
-import { Mic, ShieldCheck, Activity, Code, ArrowRight } from 'lucide-react';
+"use client";
+
+import React, { useRef } from "react";
+import Link from "next/link";
+import { motion, Variants } from "framer-motion";
+import { Mic, ShieldCheck, Activity, Code } from "lucide-react";
 
 export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-slate-950 flex flex-col font-sans text-slate-200 overflow-hidden relative">
-      {/* Background Radial Glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950 z-0 pointer-events-none"></div>
+  const containerRef = useRef<HTMLDivElement>(null);
 
-      {/* Header */}
-      <header className="relative z-10 px-6 py-4 border-b border-white/5 bg-slate-950/40 backdrop-blur-xl flex justify-between items-center">
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const cards = document.getElementsByClassName("mouse-glow-card");
+    for (const card of cards as any) {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty("--mouse-x", `${x}px`);
+      card.style.setProperty("--mouse-y", `${y}px`);
+    }
+  };
+
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+      },
+    },
+  };
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20, filter: "blur(10px)" },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      filter: "blur(0px)",
+      transition: { duration: 0.8, ease: "easeOut" }
+    },
+  };
+
+  return (
+    <div 
+      className="min-h-screen bg-slate-950 text-slate-50 font-sans relative overflow-hidden flex flex-col"
+      onMouseMove={handleMouseMove}
+      ref={containerRef}
+    >
+      {/* Absolute Background Glow Physics with Animation */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950 pointer-events-none animate-mesh" />
+
+      {/* Header: Logo & Mock GitHub */}
+      <motion.header 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="relative z-10 px-6 py-4 border-b border-white/5 bg-slate-950/40 backdrop-blur-md flex justify-between items-center"
+      >
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]"></span>
-          <span className="text-xl font-extrabold tracking-tighter bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">
+          <span className="font-extrabold tracking-tight text-xl">
             Aegis OS
           </span>
         </div>
-        <a 
-          href="https://github.com/Tejas3479/aegis-triage-os" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+        <Link
+          href="https://github.com"
+          target="_blank"
+          className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
         >
-          <Code className="w-4 h-4" />
+          <Code size={18} />
           <span>GitHub</span>
-        </a>
-      </header>
+        </Link>
+      </motion.header>
 
-      {/* Main Content */}
-      <main className="flex-1 relative z-10 flex flex-col items-center justify-center px-4 py-20 text-center">
+      {/* Main Content Area */}
+      <motion.main 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 flex-grow flex flex-col justify-center pt-20 pb-16"
+      >
         {/* Hero Section */}
-        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 ease-out">
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter bg-gradient-to-r from-slate-100 via-white to-slate-400 bg-clip-text text-transparent pb-2">
-            Enterprise AI Triage for the Next Billion.
+        <motion.div variants={itemVariants} className="text-center max-w-4xl mx-auto px-6 mb-20">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter bg-gradient-to-br from-white via-slate-200 to-slate-500 bg-clip-text text-transparent pb-4 relative overflow-hidden">
+            Enterprise AI Triage <br className="hidden md:block" /> for the Next
+            Billion.
+            <div className="absolute inset-0 animate-shimmer pointer-events-none" />
           </h1>
-          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            Aegis OS merges hardware-accelerated multimodal voice ingestion with HDBSCAN epidemiological tracking to deliver instantaneous, clinical-grade triage to rural communities worldwide.
+          <p className="text-slate-400 text-lg md:text-xl font-light tracking-wide max-w-3xl mx-auto mt-6 leading-relaxed">
+            Aegis OS merges hardware-accelerated multimodal voice ingestion with
+            HDBSCAN epidemiological tracking to deliver instantaneous,
+            clinical-grade triage to rural communities worldwide.
           </p>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-            <Link 
+
+          {/* Call To Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
+            <Link
               href="/patient"
-              className="group flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold tracking-wide shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all hover:shadow-[0_0_30px_rgba(79,70,229,0.5)]"
+              className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 px-8 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(79,70,229,0.6)]"
             >
-              <span>Patient Voice Portal</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              Patient Voice Portal &rarr;
             </Link>
-            
-            <Link 
+            <Link
               href="/login"
-              className="flex items-center justify-center w-full sm:w-auto px-8 py-4 bg-slate-900/50 hover:bg-slate-800/80 text-slate-300 border border-slate-700 hover:border-slate-500 rounded-lg font-semibold tracking-wide backdrop-blur-sm transition-all"
+              className="w-full sm:w-auto bg-slate-900/50 hover:bg-slate-800 backdrop-blur-md border border-white/10 text-white font-medium py-3 px-8 rounded-full transition-all duration-300 hover:-translate-y-1"
             >
               Clinical Portal
             </Link>
           </div>
-        </div>
+        </motion.div>
 
         {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-32 w-full">
-          <div className="flex flex-col items-center p-8 bg-slate-900/40 backdrop-blur border border-white/5 rounded-2xl shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-indigo-500/10 hover:bg-slate-800/40 cursor-default text-center">
-            <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center mb-6 shadow-inner">
-              <Mic className="w-6 h-6 text-indigo-400" />
+        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-6">
+
+          {/* Feature 1 */}
+          <div className="mouse-glow-card p-6 rounded-2xl bg-slate-900/40 backdrop-blur border border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-500/10 group overflow-hidden">
+            <div className="w-12 h-12 rounded-lg bg-indigo-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Mic className="text-indigo-400" size={24} />
             </div>
-            <h3 className="text-lg font-bold text-slate-200 mb-2">Voice-Native Triage</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Real-time WebAudio ingestion powered by LangGraph & Gemini 2.5 Pro for seamless, multimodal patient reasoning.
+            <h3 className="text-lg font-bold text-slate-200 mb-2">
+              Voice-Native Triage
+            </h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Hardware-accelerated DSP audio processing captures nuanced patient
+              vitals in the noisiest rural environments.
             </p>
           </div>
 
-          <div className="flex flex-col items-center p-8 bg-slate-900/40 backdrop-blur border border-white/5 rounded-2xl shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-emerald-500/10 hover:bg-slate-800/40 cursor-default text-center">
-            <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center mb-6 shadow-inner">
-              <ShieldCheck className="w-6 h-6 text-emerald-400" />
+          {/* Feature 2 */}
+          <div className="mouse-glow-card p-6 rounded-2xl bg-slate-900/40 backdrop-blur border border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-emerald-500/10 group overflow-hidden">
+            <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <ShieldCheck className="text-emerald-400" size={24} />
             </div>
-            <h3 className="text-lg font-bold text-slate-200 mb-2">Zero-Trust Privacy</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Microsoft Presidio integration actively scrubs PII from the clinical stream before any LLM inference occurs.
+            <h3 className="text-lg font-bold text-slate-200 mb-2">
+              Zero-Trust Privacy
+            </h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Military-grade PII scrubbers and Presidio NLP pipelines ensure total
+              HIPAA compliance before data reaches the LLM.
             </p>
           </div>
 
-          <div className="flex flex-col items-center p-8 bg-slate-900/40 backdrop-blur border border-white/5 rounded-2xl shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-rose-500/10 hover:bg-slate-800/40 cursor-default text-center">
-            <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center mb-6 shadow-inner">
-              <Activity className="w-6 h-6 text-rose-400" />
+          {/* Feature 3 */}
+          <div className="mouse-glow-card p-6 rounded-2xl bg-slate-900/40 backdrop-blur border border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-cyan-500/10 group overflow-hidden">
+            <div className="w-12 h-12 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Activity className="text-cyan-400" size={24} />
             </div>
-            <h3 className="text-lg font-bold text-slate-200 mb-2">Epidemic Radar</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              HDBSCAN vector clustering autonomously tracks geospatial disease outbreaks via the public health command center.
+            <h3 className="text-lg font-bold text-slate-200 mb-2">
+              Epidemic Radar
+            </h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Real-time Haversine clustering and HDBSCAN algorithms detect
+              infectious outbreaks before they spread.
             </p>
           </div>
-        </div>
-      </main>
+
+        </motion.div>
+      </motion.main>
     </div>
   );
 }

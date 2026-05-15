@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from app.core.auth import create_access_token, pwd_context
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -30,3 +31,34 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer", "role": user["role"]}
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    hospital_code: str
+
+@router.post("/register")
+async def register_user(request: RegisterRequest):
+    """
+    Securely provisions a new clinical account.
+    """
+    if request.username in MOCK_USERS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered"
+        )
+    
+    if request.hospital_code != "AEGIS-2026":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid Hospital Provisioning Code"
+        )
+    
+    hashed_password = pwd_context.hash(request.password)
+    MOCK_USERS[request.username] = {
+        "username": request.username,
+        "password": hashed_password,
+        "role": "DOCTOR"
+    }
+    
+    return {"message": "Clinical account provisioned securely."}

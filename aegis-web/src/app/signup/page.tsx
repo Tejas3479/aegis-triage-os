@@ -3,30 +3,30 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, User, Lock, Loader2 } from "lucide-react";
+import { ShieldPlus, User, Lock, Building, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { loginDoctor } from "@/lib/api";
+import { registerDoctor } from "@/lib/api";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
+  const [hospitalCode, setHospitalCode] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const token = await loginDoctor(username, pin);
-      localStorage.setItem("aegis_token", token);
-      toast.success("Authentication successful. Welcome back, Doctor.");
-      router.push("/doctor");
+      await registerDoctor(username, pin, hospitalCode);
+      toast.success("Clinical account provisioned successfully!");
+      router.push("/login");
     } catch (err: unknown) {
       if (err instanceof Error) {
         toast.error(err.message);
       } else {
-        toast.error("Authentication failed. Please verify credentials.");
+        toast.error("Registration failed. Please verify credentials.");
       }
     } finally {
       setLoading(false);
@@ -42,19 +42,19 @@ export default function LoginPage() {
         <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl p-8 space-y-8">
           <div className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-center shadow-inner group">
-              <ShieldCheck className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform" />
+              <ShieldPlus className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform" />
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-100 uppercase">
-                Aegis Gateway
+                Aegis Provisioning
               </h1>
               <p className="text-slate-400 text-sm font-mono mt-1">
-                Clinical Personnel Authentication
+                New Clinical Account Registration
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleSignup} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest pl-1">
                 Clinical ID
@@ -89,6 +89,23 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest pl-1">
+                Hospital Code
+              </label>
+              <div className="relative group">
+                <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                <input
+                  type="text"
+                  value={hospitalCode}
+                  onChange={(e) => setHospitalCode(e.target.value)}
+                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-mono transition-all"
+                  placeholder="AEGIS-2026"
+                  required
+                />
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -98,8 +115,8 @@ export default function LoginPage() {
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
-                  Authenticate Identity
-                  <ShieldCheck className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  Provision Account
+                  <ShieldPlus className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
             </button>
@@ -107,16 +124,16 @@ export default function LoginPage() {
 
           <div className="pt-4 text-center">
             <Link
-              href="/signup"
+              href="/login"
               className="text-xs font-mono text-slate-500 hover:text-indigo-400 transition-colors"
             >
-              Need clinical access? Request provisioning.
+              Already provisioned? Authenticate here.
             </Link>
           </div>
         </div>
 
         <p className="mt-8 text-[10px] text-slate-600 font-mono text-center tracking-tighter uppercase">
-          Zero-Trust Infrastructure Active // Secure Authentication Protocol
+          Zero-Trust Infrastructure Active // Secure Provisioning Protocol
         </p>
       </div>
     </div>
