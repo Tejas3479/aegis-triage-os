@@ -160,17 +160,8 @@ def bootstrap_clinical_users() -> None:
         logger.warning("Skipping clinical user bootstrap: database unavailable.")
         return
 
-    try:
-        existing = db_client.client.table("clinical_users").select("id").limit(1).execute()
-        if existing.data:
-            return
-    except Exception as exc:
-        logger.warning(
-            "Clinical user bootstrap skipped: 'clinical_users' table not found in schema. "
-            "Please run the SQL migrations in 'supabase/migrations/' to initialize your database. "
-            "Error: %s",
-            exc,
-        )
+    existing = db_client.client.table("clinical_users").select("id").limit(1).execute()
+    if existing.data:
         return
 
     admin_password = settings.BOOTSTRAP_ADMIN_PASSWORD

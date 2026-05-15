@@ -136,7 +136,13 @@ export default function LandingPage() {
               href="/login"
               className="text-sm text-slate-400 hover:text-white transition-colors px-3 py-2 min-h-[44px] inline-flex items-center"
             >
-              Clinician login
+              Login
+            </Link>
+            <Link
+              href="/signup"
+              className="text-sm text-slate-400 hover:text-white transition-colors px-3 py-2 min-h-[44px] inline-flex items-center border border-white/10 rounded-lg hover:bg-white/5"
+            >
+              Register
             </Link>
             <Link
               href="/patient"
@@ -204,9 +210,17 @@ export default function LandingPage() {
               <span className="text-slate-400 text-sm mt-1">
                 Priority queue · reports · epidemic radar (admin)
               </span>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-slate-300">
-                Sign in <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </span>
+              <div className="mt-4 flex items-center gap-4">
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-slate-300">
+                  Sign in <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </span>
+                <Link
+                  href="/signup"
+                  className="text-xs text-slate-500 hover:text-indigo-400 transition-colors border-l border-white/10 pl-4"
+                >
+                  Create account
+                </Link>
+              </div>
             </Link>
           </motion.div>
 

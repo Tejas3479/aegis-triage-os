@@ -15,42 +15,24 @@ def init_checkpointer() -> Any:
     global _checkpointer, _pg_context
     os.makedirs(os.path.dirname(settings.CHECKPOINT_SQLITE_PATH) or "storage", exist_ok=True)
 
-    import importlib
-
     if settings.CHECKPOINT_DATABASE_URL:
         try:
-            pg_module = importlib.import_module("langgraph.checkpoint.postgres")
-            PostgresSaver = pg_module.PostgresSaver
+            from langgraph.checkpoint.postgres import PostgresSaver
 
             _pg_context = PostgresSaver.from_conn_string(settings.CHECKPOINT_DATABASE_URL)
             _checkpointer = _pg_context.__enter__()
             _checkpointer.setup()
             logger.info("LangGraph Postgres checkpointer ready.")
             return _checkpointer
-        except (ImportError, ModuleNotFoundError):
-            logger.warning("Postgres checkpointer libraries not installed; falling back.")
         except Exception as exc:
-            logger.warning("Postgres checkpointer initialization failed (%s); falling back.", exc)
+            logger.warning("Postgres checkpointer unavailable (%s); using SQLite.", exc)
 
-    try:
-        sqlite_module = importlib.import_module("langgraph.checkpoint.sqlite")
-        SqliteSaver = sqlite_module.SqliteSaver
+    from langgraph.checkpoint.sqlite import SqliteSaver
 
-        conn = sqlite3.connect(settings.CHECKPOINT_SQLITE_PATH, check_same_thread=False)
-        _checkpointer = SqliteSaver(conn)
-        logger.info("LangGraph SQLite checkpointer ready at %s", settings.CHECKPOINT_SQLITE_PATH)
-        return _checkpointer
-    except (ImportError, ModuleNotFoundError):
-        memory_module = importlib.import_module("langgraph.checkpoint.memory")
-        MemorySaver = memory_module.MemorySaver
-
-        _checkpointer = MemorySaver()
-        logger.warning(
-            "Checkpointer dependencies (sqlite/postgres) missing. "
-            "Falling back to in-memory state. Clinical sessions will NOT persist across restarts. "
-            "Run 'pip install -r requirements.txt' to enable durable persistence."
-        )
-        return _checkpointer
+    conn = sqlite3.connect(settings.CHECKPOINT_SQLITE_PATH, check_same_thread=False)
+    _checkpointer = SqliteSaver(conn)
+    logger.info("LangGraph SQLite checkpointer ready at %s", settings.CHECKPOINT_SQLITE_PATH)
+    return _checkpointer
 
 
 def get_checkpointer() -> Any:
