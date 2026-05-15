@@ -4,13 +4,13 @@ import aiofiles
 import uuid
 import asyncio
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException, Form, Depends
-from google.genai import types
-from app.services.model_router import llm_router
-from app.services.graph_engine import graph_engine
+from app.services.graph_engine import get_graph_engine
+from app.services.local_stt import transcribe_audio
 from app.workers.tasks import compile_health_report
 from app.services.pii_vault import pii_vault
 from app.core.auth import get_current_user, User, assert_session_access
 from app.models.schemas import ChatTriageRequest, TriageApiResponse
+from app.services.consent_guard import require_active_consent
 from app.services.triage_persistence import (
     build_triage_response,
     persist_triage_outcome,
@@ -31,6 +31,7 @@ async def process_voice_triage(
     current_user: User = Depends(get_current_user),
 ):
     assert_session_access(current_user, session_id)
+    require_active_consent(session_id)
 
     file_id = str(uuid.uuid4())
     file_ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "wav"
@@ -41,24 +42,12 @@ async def process_voice_triage(
             while content := await file.read(1024 * 64):
                 await out_file.write(content)
 
-        async with aiofiles.open(file_path, "rb") as f:
-            audio_bytes = await f.read()
-
-        transcription_prompt = (
-            "SYSTEM: Transcribe the provided clinical audio with 100% fidelity. "
-            "Detect regional Indian dialects (Hinglish/Kannada) and map to clear clinical text. "
-            "Output ONLY the transcription. Do not diagnose or analyze symptoms in this pass."
+        # Local STT by default — audio never leaves the host until redacted text exists
+        raw_transcript = await transcribe_audio(
+            file_path, content_type=file.content_type or "audio/wav"
         )
-
-        response = await llm_router.client.aio.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[
-                transcription_prompt,
-                types.Part.from_bytes(data=audio_bytes, mime_type=file.content_type or "audio/wav"),
-            ],
-        )
-
-        raw_transcript = response.text
+        if not raw_transcript:
+            raise HTTPException(status_code=422, detail="Could not transcribe audio.")
         clean_transcript = pii_vault.redact_input(raw_transcript)
 
         initial_state = {
@@ -69,8 +58,9 @@ async def process_voice_triage(
         }
 
         try:
+            engine = get_graph_engine()
             result = await asyncio.wait_for(
-                graph_engine.executor.ainvoke(
+                engine.executor.ainvoke(
                     initial_state,
                     config={"configurable": {"thread_id": str(session_id)}},
                 ),
@@ -109,12 +99,14 @@ async def chat_triage(
     current_user: User = Depends(get_current_user),
 ):
     assert_session_access(current_user, body.session_id)
+    require_active_consent(body.session_id)
 
     clean_message = pii_vault.redact_input(body.message)
 
     try:
+        engine = get_graph_engine()
         result = await asyncio.wait_for(
-            graph_engine.executor.ainvoke(
+            engine.executor.ainvoke(
                 {
                     "session_id": body.session_id,
                     "chat_history": [{"role": "user", "content": clean_message}],

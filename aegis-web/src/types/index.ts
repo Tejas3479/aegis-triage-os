@@ -54,3 +54,11 @@ export interface AuthResponse {
 export interface RegisterResponse {
   message: string;
 }
+
+export interface ConsentResponse {
+  status: string;
+  session_id: string;
+  patient_id?: string;
+  consent_timestamp?: string;
+  has_consent?: boolean;
+}

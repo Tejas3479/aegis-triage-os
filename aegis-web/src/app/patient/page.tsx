@@ -8,7 +8,8 @@ import { MentalHealthCard } from '@/components/patient/MentalHealthCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TriageResponse, postChatTriage } from '@/lib/api';
+import { TriageResponse, postChatTriage, checkConsentStatus } from '@/lib/api';
+import { ConsentGate, getStoredConsentSession } from '@/components/patient/ConsentGate';
 
 interface ChatMessage {
   id: string;
@@ -26,15 +27,25 @@ export default function PatientTriageApp() {
   const [sessionId, setSessionId] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isThinking, setIsThinking] = useState<boolean>(false);
+  const [hasConsented, setHasConsented] = useState<boolean>(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setSessionId(crypto.randomUUID());
+    const id = crypto.randomUUID();
+    setSessionId(id);
     setMessages([{
       id: 'init',
       role: 'system',
-      content: "Aegis OS Initialized. I am your AI clinical assistant. Tap a quick action or use the microphone to begin triage."
+      content: "Aegis OS Initialized. Review the privacy notice, then begin triage."
     }]);
+
+    if (getStoredConsentSession() === id) {
+      setHasConsented(true);
+    } else {
+      checkConsentStatus(id).then((res) => {
+        if (res.has_consent) setHasConsented(true);
+      }).catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -75,6 +86,7 @@ export default function PatientTriageApp() {
   };
 
   const submitText = async (text: string) => {
+    if (!hasConsented) return;
     setIsThinking(true);
     setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'user', content: text }]);
     
@@ -95,6 +107,9 @@ export default function PatientTriageApp() {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-950 text-slate-100 overflow-hidden font-sans">
+      {sessionId && !hasConsented && (
+        <ConsentGate sessionId={sessionId} onConsented={() => setHasConsented(true)} />
+      )}
       <OfflineBanner />
 
       {/* Header */}
@@ -156,7 +171,7 @@ export default function PatientTriageApp() {
             <Button
               key={action.label}
               onClick={() => submitText(action.prompt)}
-              disabled={isThinking}
+              disabled={isThinking || !hasConsented}
               variant="outline"
               size="sm"
               className="flex-shrink-0 bg-slate-900/40 border-white/5 hover:bg-slate-800 hover:border-indigo-500/30 text-slate-300 text-[11px] font-medium transition-all gap-2 px-4 h-9 rounded-full"
@@ -171,7 +186,8 @@ export default function PatientTriageApp() {
         {/* Voice Input Area */}
         <div className="flex justify-center border-t border-slate-900/50 pt-4 pb-2">
           <VoiceTriage 
-            sessionId={sessionId} 
+            sessionId={sessionId}
+            disabled={!hasConsented}
             onProcessingStart={() => setIsThinking(true)}
             onAnalysisReceived={(data) => {
                 setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'user', content: "🎤 Audio symptom report submitted." }]);

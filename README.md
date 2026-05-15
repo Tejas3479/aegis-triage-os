@@ -36,7 +36,9 @@ Dive deeper into our certified enterprise architecture:
 1. [System Architecture & LangGraph Pipeline](docs/ARCHITECTURE.md)
 2. [AI, NLP, & Privacy Models](docs/MODELS_AND_NLP.md)
 3. [Algorithmic Risk Scoring & XAI Transparency](docs/RISK_SCORING.md)
-4. [Enterprise SDET Resilience Report](RUTHLESS_AUDIT_REPORT.md) *(Validates 100% type safety, AbortControllers, and Async event loop unblocking)*
+4. [Deployment Guide](docs/DEPLOYMENT.md)
+5. [Frontend Baseline Audit](docs/FRONTEND_BASELINE_AUDIT.md)
+6. [Frontend Deep-Analysis Prompt](docs/FRONTEND_ANALYSIS_PROMPT.md) *(copy into Cursor for full UI review)*
 
 ---
 
@@ -58,4 +60,8 @@ npm install
 npm run dev
 ```
 
-*Note: You must inject your `.env` variables (`GOOGLE_GENAI_API_KEY`, `SECRET_KEY`) for local compilation.*
+*Setup notes:*
+- Copy `aegis-backend/.env.example` → `aegis-backend/.env` and set secrets.
+- Download local STT model: `cd aegis-backend && python scripts/download_vosk_model.py`
+- Bootstrap clinical users via `BOOTSTRAP_ADMIN_PASSWORD` / `BOOTSTRAP_DOCTOR_PASSWORD` on first API start.
+- Register doctors with your `HOSPITAL_PROVISIONING_CODE` (default dev: `AEGIS-DEV-ONLY`).

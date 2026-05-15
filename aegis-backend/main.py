@@ -9,7 +9,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings, validate_production_settings
 from app.services.database import db_client
-from app.api.v1 import triage, doctor, reports, wearables, mental_health, public_health, auth
+from app.services.checkpointer import init_checkpointer, shutdown_checkpointer
+from app.services.graph_engine import init_graph_engine
+from app.services.clinical_auth import bootstrap_clinical_users
+from app.api.v1 import triage, doctor, reports, wearables, mental_health, public_health, auth, consent
 from app.api.v1.wearables import webhook_router
 from app.core.observability import ObservabilityMiddleware, logger
 from app.core.auth import check_role, get_current_user
@@ -22,7 +25,11 @@ async def lifespan(app: FastAPI):
     validate_production_settings()
     logger.info("Initializing Aegis Enterprise Engine...")
     await db_client.connect()
+    bootstrap_clinical_users()
+    checkpointer = init_checkpointer()
+    init_graph_engine(checkpointer)
     yield
+    shutdown_checkpointer()
     await db_client.disconnect()
     logger.info("Aegis Enterprise Engine terminated.")
 
@@ -111,6 +118,9 @@ async def root_health_status():
 
 # 5. ENTERPRISE ROUTE MOUNTING (HARDENED)
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Security"])
+
+# Public DPDP consent (rate-limited, no JWT)
+app.include_router(consent.router, prefix="/api/v1/consent", tags=["Privacy & Consent"])
 
 # Public webhook (HMAC-only, no JWT)
 app.include_router(webhook_router, prefix="/api/v1/wearables", tags=["Vitals Monitoring"])

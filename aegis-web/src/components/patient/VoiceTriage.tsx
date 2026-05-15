@@ -6,18 +6,20 @@ import { postAudioTriage, TriageResponse } from '@/lib/api';
 
 interface VoiceTriageProps {
   sessionId: string;
+  disabled?: boolean;
   onProcessingStart?: () => void;
   onAnalysisReceived: (data: TriageResponse) => void;
   onError: (message: string) => void;
 }
 
-export const VoiceTriage: React.FC<VoiceTriageProps> = ({ sessionId, onProcessingStart, onAnalysisReceived, onError }) => {
+export const VoiceTriage: React.FC<VoiceTriageProps> = ({ sessionId, disabled, onProcessingStart, onAnalysisReceived, onError }) => {
   const [recording, setRecording] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   const startRecording = async () => {
+    if (disabled) return;
     audioChunksRef.current = [];
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -76,12 +78,12 @@ export const VoiceTriage: React.FC<VoiceTriageProps> = ({ sessionId, onProcessin
           <Square className="h-6 w-6" />
         </Button>
       ) : (
-        <Button onClick={startRecording} className="h-16 w-16 rounded-full bg-slate-900 border border-slate-800 text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 shadow-xl transition-all duration-300">
+        <Button onClick={startRecording} disabled={disabled} className="h-16 w-16 rounded-full bg-slate-900 border border-slate-800 text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 shadow-xl transition-all duration-300 disabled:opacity-40">
           <Mic className="h-6 w-6" />
         </Button>
       )}
       <span className="text-[11px] font-mono mt-3 text-slate-500 tracking-wider uppercase">
-        {processing ? "Gemini Transcribing Dialect..." : recording ? "SYSTEM RECORDING RAW Vitals..." : "Hold / Click to Register Voice Symptoms"}
+        {processing ? "Transcribing locally (privacy-safe)..." : recording ? "Recording symptoms..." : "Tap to record voice symptoms"}
       </span>
     </div>
   );

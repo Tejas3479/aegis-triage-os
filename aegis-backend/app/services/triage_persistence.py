@@ -58,7 +58,7 @@ def build_triage_response(
     return response
 
 
-def _ensure_patient_for_session(session_id: str) -> Optional[str]:
+def ensure_patient_for_session(session_id: str) -> Optional[str]:
     if not db_client.client:
         return None
 
@@ -95,7 +95,7 @@ def persist_triage_outcome(session_id: str, result: Dict[str, Any]) -> None:
         return
 
     analysis = analysis_to_dict(result.get("analysis"))
-    patient_id = _ensure_patient_for_session(session_id)
+    patient_id = ensure_patient_for_session(session_id)
     if not patient_id:
         logger.warning("Could not resolve patient for session %s", session_id)
         return

@@ -11,11 +11,12 @@ export default function Navbar() {
   const router = useRouter();
 
   // Hide Navbar on Auth pages and Landing page
-  const hideNavbar = ["/", "/login", "/signup"].includes(pathname);
+  const hideNavbar = ["/", "/login", "/signup", "/privacy", "/terms"].includes(pathname);
   if (hideNavbar) return null;
 
   const handleLogout = () => {
     Cookies.remove("aegis_token");
+    Cookies.remove("aegis_role");
     router.push("/login");
   };
 

@@ -2,9 +2,8 @@ import logging
 import uuid
 import re
 import json
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Optional, Union
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
 from google.genai import types
 
 from app.models.states import TriageState
@@ -21,11 +20,11 @@ class GraphEngine:
     Implements multi-turn clinical reasoning with deterministic safety rails.
     """
 
-    def __init__(self):
-        self.memory = MemorySaver()
+    def __init__(self, checkpointer):
+        self.checkpointer = checkpointer
         self.workflow = StateGraph(TriageState)
         self._build_graph()
-        self.executor = self.workflow.compile(checkpointer=self.memory)
+        self.executor = self.workflow.compile(checkpointer=self.checkpointer)
 
     def _build_graph(self):
         """
@@ -234,4 +233,16 @@ class GraphEngine:
             return "emergency"
         return "standard"
 
-graph_engine = GraphEngine()
+graph_engine: Optional[GraphEngine] = None
+
+
+def init_graph_engine(checkpointer) -> GraphEngine:
+    global graph_engine
+    graph_engine = GraphEngine(checkpointer)
+    return graph_engine
+
+
+def get_graph_engine() -> GraphEngine:
+    if graph_engine is None:
+        raise RuntimeError("Graph engine not initialized.")
+    return graph_engine

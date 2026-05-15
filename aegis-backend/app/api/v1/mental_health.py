@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import MentalHealthAssessment
 from app.services.database import db_client
 from app.core.auth import get_current_user, User, assert_session_access
+from app.services.consent_guard import require_active_consent
 
 router = APIRouter()
 logger = logging.getLogger("aegis_core")
@@ -16,6 +17,7 @@ async def submit_assessment(
     current_user: User = Depends(get_current_user),
 ):
     assert_session_access(current_user, session_id)
+    require_active_consent(session_id)
 
     try:
         await asyncio.to_thread(

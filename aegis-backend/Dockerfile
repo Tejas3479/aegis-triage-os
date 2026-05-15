@@ -24,8 +24,13 @@ RUN python -m spacy download en_core_web_lg
 # Copy application source
 COPY . .
 
+# Local STT model (Vosk) for privacy-preserving voice triage
+RUN python scripts/download_vosk_model.py || true
+
 # Create storage directories for persistence
-RUN mkdir -p storage/reports uploads/voice
+RUN mkdir -p storage/reports uploads/voice models
+ENV VOSK_MODEL_PATH=/app/models/vosk-en-small
+ENV STT_PROVIDER=local
 
 # Expose port for Render/Vercel/K8s
 EXPOSE 8000

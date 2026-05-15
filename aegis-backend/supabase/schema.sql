@@ -10,9 +10,23 @@ DROP TABLE IF EXISTS medication_reminders CASCADE;
 DROP TABLE IF EXISTS dpdp_consent_logs CASCADE;
 DROP TABLE IF EXISTS medical_audit_logs CASCADE;
 DROP TABLE IF EXISTS triage_sessions CASCADE;
+DROP TABLE IF EXISTS clinical_users CASCADE;
 DROP TABLE IF EXISTS patients CASCADE;
 
 -- 3. Core Structural Tables
+CREATE TABLE clinical_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(128) UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('DOCTOR', 'ADMIN')),
+    hospital_code VARCHAR(64),
+    auth_user_id UUID NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_clinical_users_username ON clinical_users(username);
+
 CREATE TABLE patients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     anon_hash VARCHAR(64) UNIQUE NOT NULL,
@@ -82,15 +96,31 @@ ALTER TABLE triage_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE medical_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE medication_reminders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dpdp_consent_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clinical_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE outbreaks ENABLE ROW LEVEL SECURITY;
 
--- EXAMPLE POLICIES (Intent-Based for Enterprise Hardening)
--- Doctors can see all triage sessions for prioritization
--- CREATE POLICY doctor_all_access ON triage_sessions FOR SELECT 
--- USING (auth.jwt() ->> 'role' = 'DOCTOR');
+-- Block direct anon API access to clinical data (backend uses service_role + app RBAC)
+CREATE POLICY deny_anon_patients ON patients FOR ALL TO anon USING (false) WITH CHECK (false);
+CREATE POLICY deny_anon_triage_sessions ON triage_sessions FOR ALL TO anon USING (false) WITH CHECK (false);
+CREATE POLICY deny_anon_medical_audit_logs ON medical_audit_logs FOR ALL TO anon USING (false) WITH CHECK (false);
+CREATE POLICY deny_anon_clinical_users ON clinical_users FOR ALL TO anon USING (false) WITH CHECK (false);
+CREATE POLICY deny_anon_dpdp_consent ON dpdp_consent_logs FOR ALL TO anon USING (false) WITH CHECK (false);
 
--- Patients can only see their own anonymized entries (via anon_hash mapping)
--- CREATE POLICY patient_self_access ON patients FOR SELECT
--- USING (anon_hash = (select anon_hash from patients where id = auth.uid()));
+-- Supabase Auth clinical staff (JWT app_metadata.role) may read operational tables
+CREATE POLICY doctor_read_triage_sessions ON triage_sessions FOR SELECT TO authenticated
+USING (coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') IN ('DOCTOR', 'ADMIN'));
+
+CREATE POLICY doctor_read_patients ON patients FOR SELECT TO authenticated
+USING (coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') IN ('DOCTOR', 'ADMIN'));
+
+CREATE POLICY doctor_read_audit_logs ON medical_audit_logs FOR SELECT TO authenticated
+USING (coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') IN ('DOCTOR', 'ADMIN'));
+
+CREATE POLICY admin_read_outbreaks ON outbreaks FOR SELECT TO authenticated
+USING (coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'ADMIN');
+
+CREATE POLICY clinical_users_self_read ON clinical_users FOR SELECT TO authenticated
+USING (auth.uid() = auth_user_id);
 
 -- =======================================================
 -- 6. THE HACKATHON WINNING SEED 

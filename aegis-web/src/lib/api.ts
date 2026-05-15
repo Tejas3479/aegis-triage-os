@@ -5,7 +5,8 @@ import {
   HDBSCANResponse, 
   MentalHealthResponse,
   AuthResponse,
-  RegisterResponse
+  RegisterResponse,
+  ConsentResponse
 } from "@/types";
 
 export type { 
@@ -15,7 +16,8 @@ export type {
   HDBSCANResponse, 
   MentalHealthResponse,
   AuthResponse,
-  RegisterResponse
+  RegisterResponse,
+  ConsentResponse
 };
 
 import Cookies from "js-cookie";
@@ -213,6 +215,38 @@ export async function registerDoctor(username: string, pin: string, hospitalCode
       hospital_code: hospitalCode
     })
   });
+}
+
+export async function recordDpdpConsent(sessionId: string): Promise<ConsentResponse> {
+  const response = await fetch(`${API_BASE}/api/v1/consent/record`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new ApiError(response.status, err.detail || 'Consent recording failed.');
+  }
+  return response.json() as Promise<ConsentResponse>;
+}
+
+export async function checkConsentStatus(sessionId: string): Promise<ConsentResponse> {
+  const response = await fetch(`${API_BASE}/api/v1/consent/status/${sessionId}`);
+  if (!response.ok) {
+    return { status: 'unknown', session_id: sessionId, has_consent: false };
+  }
+  return response.json() as Promise<ConsentResponse>;
+}
+
+export async function revokeDpdpConsent(sessionId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/v1/consent/revoke`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, 'Could not revoke consent.');
+  }
 }
 
 export async function syncWearableData(sessionId: string, heartRate: number, spO2: number): Promise<unknown> {

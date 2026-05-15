@@ -3,11 +3,11 @@ import asyncio
 import hashlib
 import logging
 import json
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from typing import Annotated, Dict, Any
 from app.core.config import settings
 from app.core.auth import get_current_user, User, assert_session_access
-from app.services.graph_engine import graph_engine
+from app.services.graph_engine import get_graph_engine
 from app.services.database import db_client
 from app.models.schemas import CareLevel
 
@@ -94,13 +94,13 @@ async def sync_wearable_data(
             )
             
             # Inject emergency flag into the graph state
-            graph_engine.executor.update_state(
+            get_graph_engine().executor.update_state(
                 thread_config, 
                 {"profile": updated_profile, "emergency_override": True}
             )
         else:
             # Standard state update
-            graph_engine.executor.update_state(
+            get_graph_engine().executor.update_state(
                 thread_config, 
                 {"profile": updated_profile}
             )
