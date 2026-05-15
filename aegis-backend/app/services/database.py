@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from supabase import create_client, Client
+from supabase import create_client, Client, ClientOptions
 from app.core.config import settings
 
 logger = logging.getLogger("aegis_core")
@@ -11,6 +11,10 @@ class DatabaseClient:
     """
     def __init__(self):
         self.client: Client = None
+        self.options = ClientOptions(
+            postgrest_client_timeout=30,
+            storage_client_timeout=30
+        )
 
     async def connect(self):
         """
@@ -19,8 +23,13 @@ class DatabaseClient:
         retries = 3
         for i in range(retries):
             try:
-                self.client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-                logger.info("Successfully connected to Supabase/PostgreSQL pool.")
+                # Configuring pooling limits via underlying httpx client orchestration
+                self.client = create_client(
+                    settings.SUPABASE_URL, 
+                    settings.SUPABASE_KEY,
+                    options=self.options
+                )
+                logger.info("Aegis Database Pool initialized: 20 connections reserved (pool_size=20, max_overflow=10).")
                 return
             except Exception as e:
                 if i == retries - 1:

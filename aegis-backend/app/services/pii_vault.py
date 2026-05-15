@@ -16,6 +16,8 @@ class PrivacyInterceptor:
     # Fallback regex patterns for Indian national phone structures, emails, and names
     PHONE_PATTERN = r"(?:\+91|0)?[6-9]\d{9}"
     EMAIL_PATTERN = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
+    AADHAAR_PATTERN = r"\b\d{4}\s\d{4}\s\d{4}\b"  # XXXX XXXX XXXX format
+    MEDICAL_ID_PATTERN = r"\bAEG-MRN-[A-Z0-9]{8}\b" # Aegis Medical Record Number format
     
     REDACTION_LABEL = "[ANONYMIZED_PATIENT_DATA]"
 
@@ -69,6 +71,10 @@ class PrivacyInterceptor:
         sanitized = re.sub(self.PHONE_PATTERN, self.REDACTION_LABEL, sanitized)
         # Redact Emails
         sanitized = re.sub(self.EMAIL_PATTERN, self.REDACTION_LABEL, sanitized)
+        # Redact Aadhaar
+        sanitized = re.sub(self.AADHAAR_PATTERN, self.REDACTION_LABEL, sanitized)
+        # Redact Medical IDs
+        sanitized = re.sub(self.MEDICAL_ID_PATTERN, self.REDACTION_LABEL, sanitized)
         
         return sanitized
 

@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.services.database import db_client
 from app.api.v1 import triage, doctor, reports, wearables, mental_health, public_health, auth
 from app.core.observability import ObservabilityMiddleware, logger
-from app.core.auth import check_role
+from app.core.auth import check_role, get_current_user
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -75,11 +75,15 @@ class MedicalDisclaimerMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(MedicalDisclaimerMiddleware)
 
-# 4. CORS CONFIGURATION
+# 4. CORS CONFIGURATION (STRICT)
+if not settings.ALLOWED_ORIGINS:
+    logger.critical("CORS CONFIGURATION ERROR: ALLOWED_ORIGINS not found in environment.")
+    raise RuntimeError("Security Violation: Application cannot start with unrestricted CORS. Define ALLOWED_ORIGINS.")
+
 origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins else ["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -103,18 +107,42 @@ async def root_health_status():
         "observability": "active"
     }
 
-# 5. ENTERPRISE ROUTE MOUNTING
+# 5. ENTERPRISE ROUTE MOUNTING (HARDENED)
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Security"])
-app.include_router(triage.router, prefix="/api/v1/triage", tags=["Clinical Triage"])
+
+# Protected Clinical Routes
+app.include_router(
+    triage.router, 
+    prefix="/api/v1/triage", 
+    tags=["Clinical Triage"],
+    dependencies=[Depends(get_current_user)]
+)
+app.include_router(
+    reports.router, 
+    prefix="/api/v1/reports", 
+    tags=["Health Reports"],
+    dependencies=[Depends(get_current_user)]
+)
+app.include_router(
+    wearables.router, 
+    prefix="/api/v1/wearables", 
+    tags=["Vitals Monitoring"],
+    dependencies=[Depends(get_current_user)]
+)
+app.include_router(
+    mental_health.router, 
+    prefix="/api/v1/mental", 
+    tags=["Psychometric Assessments"],
+    dependencies=[Depends(get_current_user)]
+)
+
+# Role-Based Professional Routes
 app.include_router(
     doctor.router, 
     prefix="/api/v1/doctor", 
     tags=["Professional Routing"],
     dependencies=[Depends(check_role(["DOCTOR", "ADMIN"]))]
 )
-app.include_router(reports.router, prefix="/api/v1/reports", tags=["Health Reports"])
-app.include_router(wearables.router, prefix="/api/v1/wearables", tags=["Vitals Monitoring"])
-app.include_router(mental_health.router, prefix="/api/v1/mental", tags=["Psychometric Assessments"])
 app.include_router(
     public_health.router, 
     prefix="/api/v1/public-health", 
