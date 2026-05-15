@@ -56,3 +56,36 @@ export async function fetchDoctorQueue(): Promise<DoctorQueueItem[]> {
   if (!res.ok) throw new ApiError(res.status, 'Failed to resolve priority queue.');
   return await res.json() as DoctorQueueItem[];
 }
+
+export interface OutbreakCluster {
+  cluster_id: number;
+  disease_pattern: string;
+  case_count: number;
+  center_latitude: number;
+  center_longitude: number;
+  risk_level: 'CRITICAL' | 'WARNING' | 'MONITOR';
+}
+
+export async function fetchOutbreakClusters(): Promise<OutbreakCluster[]> {
+  const res = await fetch(`${API_BASE}/api/v1/public-health/outbreaks`, { cache: 'no-store' });
+  if (!res.ok) throw new ApiError(res.status, 'Failed to resolve HDBSCAN cluster data.');
+  
+  const rawData = await res.json();
+  const clusters = rawData.clusters || [];
+  
+  // Adapter Pattern: Map backend "density_count" to requested frontend schema
+  return clusters.map((c: any) => {
+    let risk: 'CRITICAL' | 'WARNING' | 'MONITOR' = 'MONITOR';
+    if (c.density_count > 15) risk = 'CRITICAL';
+    else if (c.density_count > 5) risk = 'WARNING';
+    
+    return {
+      cluster_id: c.cluster_id,
+      disease_pattern: "Viral Respiratory (Presumed)",
+      case_count: c.density_count,
+      center_latitude: c.center_latitude,
+      center_longitude: c.center_longitude,
+      risk_level: risk
+    };
+  });
+}
