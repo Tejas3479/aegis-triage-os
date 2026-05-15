@@ -6,14 +6,17 @@ import json
 from fastapi import APIRouter, Header, HTTPException, Request
 from typing import Annotated, Dict, Any
 from app.core.config import settings
+from app.core.auth import get_current_user, User, assert_session_access
 from app.services.graph_engine import graph_engine
 from app.services.database import db_client
 from app.models.schemas import CareLevel
 
 router = APIRouter()
+webhook_router = APIRouter()
 logger = logging.getLogger("aegis_core")
 
-@router.post("/webhook")
+
+@webhook_router.post("/webhook")
 async def receive_vital_monitoring(
     request: Request,
     x_signature: Annotated[str, Header()] = None
@@ -47,7 +50,10 @@ async def receive_vital_monitoring(
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
 @router.post("/sync")
-async def sync_wearable_data(payload: Dict[str, Any]):
+async def sync_wearable_data(
+    payload: Dict[str, Any],
+    current_user: User = Depends(get_current_user),
+):
     """
     Advanced Wearables Integration: Syncs real-time vitals into the active LangGraph state.
     Resolved: Database execution bug (missing parentheses on .execute()).
@@ -55,6 +61,9 @@ async def sync_wearable_data(payload: Dict[str, Any]):
     session_id = payload.get("session_id")
     heart_rate = payload.get("heart_rate")
     spO2 = payload.get("spO2")
+
+    if session_id:
+        assert_session_access(current_user, session_id)
 
     if not all([session_id, heart_rate, spO2]):
         raise HTTPException(status_code=400, detail="Missing required vitals: session_id, heart_rate, spO2")
@@ -79,7 +88,7 @@ async def sync_wearable_data(payload: Dict[str, Any]):
             # Fixed: Added () to execute() to ensure the query actually runs.
             await asyncio.to_thread(
                 db_client.client.table("triage_sessions")
-                .update({"care_level": CareLevel.EMERGENCY_ROOM, "risk_score": 100})
+                .update({"care_level": CareLevel.EMERGENCY_ROOM.value, "risk_score": 10})
                 .eq("id", session_id)
                 .execute()
             )

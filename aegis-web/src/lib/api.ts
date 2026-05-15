@@ -22,6 +22,11 @@ import Cookies from "js-cookie";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+const COOKIE_OPTS = {
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+};
+
 class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -29,10 +34,46 @@ class ApiError extends Error {
   }
 }
 
-/**
- * Enterprise Fetch Wrapper
- * Handles base URL, auth headers, and consistent error parsing.
- */
+function setAuthCookies(accessToken: string, role: string, expiresDays: number) {
+  Cookies.set('aegis_token', accessToken, { ...COOKIE_OPTS, expires: expiresDays });
+  Cookies.set('aegis_role', role, { ...COOKIE_OPTS, expires: expiresDays });
+}
+
+function sessionFromToken(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
+    return typeof payload.session_id === 'string' ? payload.session_id : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Issues or refreshes a session-scoped PATIENT token before clinical API calls. */
+export async function ensurePatientToken(sessionId: string): Promise<void> {
+  const existingRole = Cookies.get('aegis_role');
+  const token = Cookies.get('aegis_token');
+
+  if (token && existingRole === 'PATIENT' && sessionFromToken(token) === sessionId) {
+    return;
+  }
+
+  const authRes = await fetch(`${API_BASE}/api/v1/auth/anonymous`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+
+  if (!authRes.ok) {
+    const err = await authRes.json().catch(() => ({ detail: authRes.statusText }));
+    throw new ApiError(authRes.status, err.detail || 'Anonymous authentication failed.');
+  }
+
+  const authData: AuthResponse = await authRes.json();
+  if (authData.access_token) {
+    setAuthCookies(authData.access_token, authData.role || 'PATIENT', 1 / 12);
+  }
+}
+
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}, timeout = 10000): Promise<T> {
   const token = Cookies.get('aegis_token');
   
@@ -66,28 +107,7 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}, timeout 
 }
 
 export async function postAudioTriage(audioBlob: Blob, sessionId: string): Promise<TriageResponse> {
-  let token = Cookies.get('aegis_token');
-  
-  // Task 2: Anonymous Token Acquisition for Patients
-  if (!token) {
-    try {
-      const authRes = await fetch(`${API_BASE}/api/v1/auth/anonymous`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId })
-      });
-      const authData = await authRes.json();
-      if (authData.access_token) {
-        Cookies.set('aegis_token', authData.access_token, { 
-          secure: process.env.NODE_ENV === 'production', 
-          sameSite: 'strict', 
-          expires: 1/12 // 2 hours
-        });
-      }
-    } catch (err) {
-      console.error("Anonymous authentication failed:", err);
-    }
-  }
+  await ensurePatientToken(sessionId);
 
   const formData = new FormData();
   formData.append('file', audioBlob, 'triage_audio.wav');
@@ -96,31 +116,11 @@ export async function postAudioTriage(audioBlob: Blob, sessionId: string): Promi
   return apiFetch<TriageResponse>('/api/v1/triage/voice', {
     method: 'POST',
     body: formData
-  }, 30000); // 30s for ML inference
+  }, 30000);
 }
 
 export async function postChatTriage(message: string, sessionId: string): Promise<TriageResponse> {
-  let token = Cookies.get('aegis_token');
-  
-  if (!token) {
-    try {
-      const authRes = await fetch(`${API_BASE}/api/v1/auth/anonymous`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId })
-      });
-      const authData = await authRes.json();
-      if (authData.access_token) {
-        Cookies.set('aegis_token', authData.access_token, { 
-          secure: process.env.NODE_ENV === 'production', 
-          sameSite: 'strict', 
-          expires: 1/12
-        });
-      }
-    } catch (err) {
-      console.error("Anonymous authentication failed:", err);
-    }
-  }
+  await ensurePatientToken(sessionId);
 
   return apiFetch<TriageResponse>('/api/v1/triage/chat', {
     method: 'POST',
@@ -137,8 +137,7 @@ export async function fetchOutbreakClusters(): Promise<OutbreakCluster[]> {
   const rawData = await apiFetch<HDBSCANResponse>('/api/v1/public-health/outbreaks', { cache: 'no-store' });
   const clusters = rawData.clusters || [];
   
-  // Adapter Pattern: Map backend "density_count" to frontend risk schema
-  return clusters.map((c: any) => {
+  return clusters.map((c: { cluster_id: number; density_count: number; center_latitude: number; center_longitude: number }) => {
     let risk: 'CRITICAL' | 'WARNING' | 'MONITOR' = 'MONITOR';
     if (c.density_count > 15) risk = 'CRITICAL';
     else if (c.density_count > 5) risk = 'WARNING';
@@ -174,6 +173,8 @@ export async function downloadEHRPdf(sessionId: string): Promise<void> {
 }
 
 export async function submitMentalAssessment(sessionId: string, phq9Score: number): Promise<MentalHealthResponse> {
+  await ensurePatientToken(sessionId);
+
   const payload = {
     phq9_score: phq9Score,
     gad7_score: 0,
@@ -188,7 +189,7 @@ export async function submitMentalAssessment(sessionId: string, phq9Score: numbe
   });
 }
 
-export async function loginDoctor(username: string, pin: string): Promise<string> {
+export async function loginDoctor(username: string, pin: string): Promise<AuthResponse> {
   const formData = new FormData();
   formData.append('username', username);
   formData.append('password', pin);
@@ -197,8 +198,9 @@ export async function loginDoctor(username: string, pin: string): Promise<string
     method: 'POST', 
     body: formData 
   });
-  
-  return data.access_token;
+
+  setAuthCookies(data.access_token, data.role, 1);
+  return data;
 }
 
 export async function registerDoctor(username: string, pin: string, hospitalCode: string): Promise<RegisterResponse> {
@@ -213,8 +215,10 @@ export async function registerDoctor(username: string, pin: string, hospitalCode
   });
 }
 
-export async function syncWearableData(sessionId: string, heartRate: number, spO2: number): Promise<any> {
-  return apiFetch<any>('/api/v1/wearables/sync', {
+export async function syncWearableData(sessionId: string, heartRate: number, spO2: number): Promise<unknown> {
+  await ensurePatientToken(sessionId);
+
+  return apiFetch('/api/v1/wearables/sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -224,4 +228,3 @@ export async function syncWearableData(sessionId: string, heartRate: number, spO
     })
   });
 }
-

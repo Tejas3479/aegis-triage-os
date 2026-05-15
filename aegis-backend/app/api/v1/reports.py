@@ -1,8 +1,9 @@
 import os
 import logging
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from fastapi.responses import FileResponse
 from app.workers.tasks import compile_health_report
+from app.core.auth import get_current_user, User, assert_session_access
 
 router = APIRouter()
 logger = logging.getLogger("aegis_core")
@@ -17,7 +18,11 @@ async def trigger_report_generation(session_id: str, background_tasks: Backgroun
     return {"status": "generation_started", "session_id": session_id}
 
 @router.get("/download/{session_id}")
-async def download_health_report(session_id: str):
+async def download_health_report(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    assert_session_access(current_user, session_id)
     """
     Serves the generated PDF health report.
     """

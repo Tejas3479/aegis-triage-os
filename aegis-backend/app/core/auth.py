@@ -18,7 +18,8 @@ class TokenData(BaseModel):
 
 class User(BaseModel):
     username: str
-    role: str # 'PATIENT', 'DOCTOR', 'ADMIN'
+    role: str  # 'PATIENT', 'DOCTOR', 'ADMIN'
+    session_id: Optional[str] = None
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """
@@ -46,12 +47,27 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
         role: str = payload.get("role")
-        if username is None:
+        session_id: Optional[str] = payload.get("session_id")
+        if username is None or role is None:
             raise credentials_exception
         token_data = TokenData(username=username, role=role)
     except JWTError:
         raise credentials_exception
-    return User(username=token_data.username, role=token_data.role)
+    return User(
+        username=token_data.username,
+        role=token_data.role,
+        session_id=session_id,
+    )
+
+
+def assert_session_access(current_user: User, session_id: str) -> None:
+    """PATIENT tokens are scoped to a single triage session."""
+    if current_user.role == "PATIENT":
+        if not current_user.session_id or current_user.session_id != str(session_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied for this clinical session.",
+            )
 
 def check_role(required_roles: List[str]):
     """

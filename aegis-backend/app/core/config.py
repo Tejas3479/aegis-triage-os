@@ -25,3 +25,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
 settings = Settings()
+
+
+def validate_production_settings() -> None:
+    if settings.ENVIRONMENT.lower() != "production":
+        return
+    if settings.SECRET_KEY == "default-secret-key-for-dev":
+        raise RuntimeError("SECRET_KEY must be set in production.")
+    if settings.ALLOWED_ORIGINS.strip() == "*":
+        raise RuntimeError("ALLOWED_ORIGINS cannot be '*' in production.")

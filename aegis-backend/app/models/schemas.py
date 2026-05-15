@@ -96,3 +96,18 @@ class TriageSession(TriageSessionBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ChatTriageRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=4000)
+    session_id: str = Field(..., min_length=1)
+
+
+class TriageApiResponse(BaseModel):
+    session_id: str
+    care_level: str
+    guidance_notes: str
+    extracted_symptoms: List[str] = Field(default_factory=list)
+    telemedicine_url: Optional[str] = None
+    status: str = "processed"
+    transcription: Optional[str] = None

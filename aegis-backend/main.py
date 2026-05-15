@@ -7,9 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.core.config import settings
+from app.core.config import settings, validate_production_settings
 from app.services.database import db_client
 from app.api.v1 import triage, doctor, reports, wearables, mental_health, public_health, auth
+from app.api.v1.wearables import webhook_router
 from app.core.observability import ObservabilityMiddleware, logger
 from app.core.auth import check_role, get_current_user
 
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI):
     """
     Application lifespan context manager managing runtime database client pools.
     """
+    validate_production_settings()
     logger.info("Initializing Aegis Enterprise Engine...")
     await db_client.connect()
     yield
@@ -109,6 +111,9 @@ async def root_health_status():
 
 # 5. ENTERPRISE ROUTE MOUNTING (HARDENED)
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Security"])
+
+# Public webhook (HMAC-only, no JWT)
+app.include_router(webhook_router, prefix="/api/v1/wearables", tags=["Vitals Monitoring"])
 
 # Protected Clinical Routes
 app.include_router(

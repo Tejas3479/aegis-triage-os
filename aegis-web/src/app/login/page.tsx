@@ -6,7 +6,6 @@ import Link from "next/link";
 import { ShieldCheck, User, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { loginDoctor } from "@/lib/api";
-import Cookies from "js-cookie";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -19,12 +18,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const token = await loginDoctor(username, pin);
-      Cookies.set('aegis_token', token, { 
-        secure: process.env.NODE_ENV === 'production', 
-        sameSite: 'strict', 
-        expires: 1 
-      });
+      await loginDoctor(username, pin);
       toast.success("Authentication successful. Welcome back, Doctor.");
       router.push("/doctor");
     } catch (err: unknown) {

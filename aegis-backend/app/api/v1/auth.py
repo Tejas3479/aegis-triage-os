@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from app.core.auth import create_access_token, pwd_context
-from pydantic import BaseModel
+from app.core.rate_limit import check_rate_limit
+from pydantic import BaseModel, Field
 
 router = APIRouter()
 
@@ -64,13 +65,16 @@ async def register_user(request: RegisterRequest):
     return {"message": "Clinical account provisioned securely."}
 
 class AnonymousRequest(BaseModel):
-    session_id: str
+    session_id: str = Field(..., min_length=1, max_length=64)
 
 @router.post("/anonymous")
-async def issue_anonymous_token(request: AnonymousRequest):
+async def issue_anonymous_token(http_request: Request, request: AnonymousRequest):
     """
     Issues a short-lived, session-scoped token for anonymous patient triage.
     """
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    check_rate_limit(f"anon:{client_ip}", max_requests=30, window_seconds=60)
+
     access_token_expires = timedelta(hours=2)
     access_token = create_access_token(
         data={"sub": f"patient_{request.session_id}", "role": "PATIENT", "session_id": request.session_id},
