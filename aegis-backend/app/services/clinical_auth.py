@@ -27,27 +27,30 @@ def _authenticate_from_table(username: str, password: str) -> Optional[Dict[str,
     if not db_client.client:
         return None
 
-    response = (
-        db_client.client.table("clinical_users")
-        .select("username, role, password_hash, auth_user_id, is_active")
-        .eq("username", username)
-        .limit(1)
-        .execute()
-    )
-    if not response.data:
-        return None
+    try:
+        response = (
+            db_client.client.table("clinical_users")
+            .select("username, role, password_hash, auth_user_id, is_active")
+            .eq("username", username)
+            .limit(1)
+            .execute()
+        )
+        if not response.data:
+            return None
 
-    row = response.data[0]
-    if not row.get("is_active", True):
-        return None
-    if not pwd_context.verify(password, row["password_hash"]):
-        return None
+        row = response.data[0]
+        if not row.get("is_active", True):
+            return None
+        if not pwd_context.verify(password, row["password_hash"]):
+            return None
 
-    return {
-        "username": row["username"],
-        "role": row["role"],
-        "auth_user_id": row.get("auth_user_id"),
-    }
+        return {
+            "username": row["username"],
+            "role": row["role"],
+            "auth_user_id": row.get("auth_user_id"),
+        }
+    except Exception:
+        return None
 
 
 def _authenticate_supabase(username: str, password: str) -> Optional[Dict[str, Any]]:
@@ -67,15 +70,18 @@ def _authenticate_supabase(username: str, password: str) -> Optional[Dict[str, A
         role = app_meta.get("role") or user_meta.get("role")
 
         if not role and db_client.client:
-            lookup = (
-                db_client.client.table("clinical_users")
-                .select("role")
-                .eq("username", username)
-                .limit(1)
-                .execute()
-            )
-            if lookup.data:
-                role = lookup.data[0]["role"]
+            try:
+                lookup = (
+                    db_client.client.table("clinical_users")
+                    .select("role")
+                    .eq("username", username)
+                    .limit(1)
+                    .execute()
+                )
+                if lookup.data:
+                    role = lookup.data[0]["role"]
+            except Exception:
+                pass
 
         if role not in ("DOCTOR", "ADMIN"):
             return None
@@ -110,15 +116,20 @@ def register_clinical_user(
     if not db_client.client:
         raise RuntimeError("Database unavailable.")
 
-    existing = (
-        db_client.client.table("clinical_users")
-        .select("id")
-        .eq("username", username)
-        .limit(1)
-        .execute()
-    )
-    if existing.data:
-        raise ValueError("Username already registered.")
+    try:
+        existing = (
+            db_client.client.table("clinical_users")
+            .select("id")
+            .eq("username", username)
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            raise ValueError("Username already registered.")
+    except Exception as exc:
+        if "PGRST205" in str(exc):
+             raise RuntimeError("Database schema not initialized. Run migrations.") from exc
+        raise
 
     password_hash = pwd_context.hash(password)
     auth_user_id = None
@@ -160,8 +171,17 @@ def bootstrap_clinical_users() -> None:
         logger.warning("Skipping clinical user bootstrap: database unavailable.")
         return
 
-    existing = db_client.client.table("clinical_users").select("id").limit(1).execute()
-    if existing.data:
+    try:
+        existing = db_client.client.table("clinical_users").select("id").limit(1).execute()
+        if existing.data:
+            return
+    except Exception as exc:
+        logger.warning(
+            "Clinical user bootstrap skipped: 'clinical_users' table not found in schema. "
+            "Please run the SQL migrations in 'supabase/migrations/' to initialize your database. "
+            "Error: %s",
+            exc,
+        )
         return
 
     admin_password = settings.BOOTSTRAP_ADMIN_PASSWORD

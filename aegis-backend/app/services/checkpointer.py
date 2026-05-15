@@ -15,24 +15,54 @@ def init_checkpointer() -> Any:
     global _checkpointer, _pg_context
     os.makedirs(os.path.dirname(settings.CHECKPOINT_SQLITE_PATH) or "storage", exist_ok=True)
 
+    import importlib
+
     if settings.CHECKPOINT_DATABASE_URL:
         try:
-            from langgraph.checkpoint.postgres import PostgresSaver
+            pg_module = importlib.import_module("langgraph.checkpoint.postgres")
+            PostgresSaver = pg_module.PostgresSaver
 
             _pg_context = PostgresSaver.from_conn_string(settings.CHECKPOINT_DATABASE_URL)
             _checkpointer = _pg_context.__enter__()
             _checkpointer.setup()
             logger.info("LangGraph Postgres checkpointer ready.")
             return _checkpointer
+        except (ImportError, ModuleNotFoundError):
+            logger.warning("Postgres checkpointer libraries not installed; falling back.")
         except Exception as exc:
-            logger.warning("Postgres checkpointer unavailable (%s); using SQLite.", exc)
+            logger.warning("Postgres checkpointer initialization failed (%s); falling back.", exc)
 
-    from langgraph.checkpoint.sqlite import SqliteSaver
+    try:
+        sqlite_module = importlib.import_module("langgraph.checkpoint.sqlite")
+        SqliteSaver = sqlite_module.SqliteSaver
 
-    conn = sqlite3.connect(settings.CHECKPOINT_SQLITE_PATH, check_same_thread=False)
-    _checkpointer = SqliteSaver(conn)
-    logger.info("LangGraph SQLite checkpointer ready at %s", settings.CHECKPOINT_SQLITE_PATH)
-    return _checkpointer
+        conn = sqlite3.connect(settings.CHECKPOINT_SQLITE_PATH, check_same_thread=False)
+        _checkpointer = SqliteSaver(conn)
+        logger.info("LangGraph SQLite checkpointer ready at %s", settings.CHECKPOINT_SQLITE_PATH)
+        return _checkpointer
+    except (ImportError, ModuleNotFoundError):
+        try:
+            memory_module = importlib.import_module("langgraph.checkpoint.memory")
+            MemorySaver = memory_module.MemorySaver
+
+            _checkpointer = MemorySaver()
+            logger.warning(
+                "Checkpointer dependencies (sqlite/postgres) missing. "
+                "Falling back to in-memory state. Clinical sessions will NOT persist across restarts. "
+                "Run 'pip install -r requirements.txt' to enable durable persistence."
+            )
+            return _checkpointer
+        except (ImportError, ModuleNotFoundError):
+            # Final fallback for minimal langgraph installation
+            from langgraph.checkpoint.base import BaseCheckpointSaver
+            class MockSaver(BaseCheckpointSaver):
+                def get_tuple(self, config): return None
+                def put(self, config, checkpoint, metadata, new_versions): return config
+                def list(self, config, *, before=None, limit=None): return []
+
+            _checkpointer = MockSaver()
+            logger.critical("LangGraph checkpointing system completely unavailable. Using mock.")
+            return _checkpointer
 
 
 def get_checkpointer() -> Any:
