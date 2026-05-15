@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Mic, Square, Loader2 } from 'lucide-react';
 import { postAudioTriage, TriageResponse } from '@/lib/api';
 
+import { set, get, del } from 'idb-keyval';
+
 interface VoiceTriageProps {
   sessionId: string;
   disabled?: boolean;
@@ -17,6 +19,31 @@ export const VoiceTriage: React.FC<VoiceTriageProps> = ({ sessionId, disabled, o
   const [processing, setProcessing] = useState<boolean>(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // Task 1: Offline Sync Logic
+  React.useEffect(() => {
+    const syncOfflineQueue = async () => {
+      if (!navigator.onLine) return;
+      const queuedBlob = await get<Blob>(`offline_audio_${sessionId}`);
+      if (queuedBlob) {
+        setProcessing(true);
+        if (onProcessingStart) onProcessingStart();
+        try {
+          const result = await postAudioTriage(queuedBlob, sessionId);
+          await del(`offline_audio_${sessionId}`);
+          onAnalysisReceived(result);
+        } catch (err) {
+          console.warn("Retry failed, keeping in queue.");
+        } finally {
+          setProcessing(false);
+        }
+      }
+    };
+
+    window.addEventListener('online', syncOfflineQueue);
+    syncOfflineQueue(); // Check on mount
+    return () => window.removeEventListener('online', syncOfflineQueue);
+  }, [sessionId, onAnalysisReceived, onProcessingStart]);
 
   const startRecording = async () => {
     if (disabled) return;
@@ -40,12 +67,18 @@ export const VoiceTriage: React.FC<VoiceTriageProps> = ({ sessionId, disabled, o
         setProcessing(true);
         if (onProcessingStart) onProcessingStart();
         const audioBlob = new Blob(audioChunksRef.current, { type: options?.mimeType || 'audio/wav' });
+        
         try {
           const outputResult = await postAudioTriage(audioBlob, sessionId);
           onAnalysisReceived(outputResult);
         } catch (error) {
           console.error("Transmission error:", error);
-          onError("Failed to analyze audio. Please check your connection and try again.");
+          if (!navigator.onLine) {
+            await set(`offline_audio_${sessionId}`, audioBlob);
+            onError("Network lost. Audio queued locally for auto-sync when online.");
+          } else {
+            onError("Failed to analyze audio. Please try again.");
+          }
         } finally {
           setProcessing(false);
         }

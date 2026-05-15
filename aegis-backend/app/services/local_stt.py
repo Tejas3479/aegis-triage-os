@@ -27,28 +27,65 @@ def _load_vosk_model():
     return _vosk_model
 
 
+def _convert_to_wav(input_path: str) -> str:
+    """Normalize any audio format to mono 16-bit PCM WAV for Vosk."""
+    import ffmpeg
+
+    output_path = f"{input_path}.normalized.wav"
+    try:
+        # Normalize to 16k mono PCM
+        stream = ffmpeg.input(input_path)
+        stream = ffmpeg.output(
+            stream, output_path, acodec="pcm_s16le", ac=1, ar="16k", loglevel="error"
+        ).overwrite_output()
+        ffmpeg.run(stream)
+        return output_path
+    except Exception as e:
+        logger.error("Audio normalization failed: %s", e)
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        raise ValueError("Audio format incompatible or ffmpeg not found.") from e
+
+
 def _transcribe_wav_vosk(file_path: str) -> str:
     from vosk import KaldiRecognizer
 
     model = _load_vosk_model()
-    with wave.open(file_path, "rb") as wf:
-        if wf.getnchannels() != 1 or wf.getsampwidth() != 2:
-            raise ValueError("Audio must be mono 16-bit PCM WAV for local STT.")
-        recognizer = KaldiRecognizer(model, wf.getframerate())
-        recognizer.SetWords(True)
-        parts = []
-        while True:
-            data = wf.readframes(4000)
-            if not data:
-                break
-            if recognizer.AcceptWaveform(data):
-                result = json.loads(recognizer.Result())
-                if result.get("text"):
-                    parts.append(result["text"])
-        final = json.loads(recognizer.FinalResult())
-        if final.get("text"):
-            parts.append(final["text"])
-    return " ".join(parts).strip()
+    
+    # Transcode if not already a compliant WAV
+    wav_path = file_path
+    temp_wav = None
+    try:
+        # Simple check for WAV header; if it fails or isn't 16k mono, _convert_to_wav will handle it
+        try:
+            with wave.open(file_path, "rb") as wf:
+                is_compliant = (wf.getnchannels() == 1 and wf.getframerate() == 16000)
+        except Exception:
+            is_compliant = False
+
+        if not is_compliant:
+            temp_wav = _convert_to_wav(file_path)
+            wav_path = temp_wav
+
+        with wave.open(wav_path, "rb") as wf:
+            recognizer = KaldiRecognizer(model, wf.getframerate())
+            recognizer.SetWords(True)
+            parts = []
+            while True:
+                data = wf.readframes(4000)
+                if not data:
+                    break
+                if recognizer.AcceptWaveform(data):
+                    result = json.loads(recognizer.Result())
+                    if result.get("text"):
+                        parts.append(result["text"])
+            final = json.loads(recognizer.FinalResult())
+            if final.get("text"):
+                parts.append(final["text"])
+        return " ".join(parts).strip()
+    finally:
+        if temp_wav and os.path.exists(temp_wav):
+            os.remove(temp_wav)
 
 
 async def transcribe_audio_local(file_path: str) -> str:

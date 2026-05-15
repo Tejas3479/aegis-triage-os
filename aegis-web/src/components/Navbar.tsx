@@ -20,11 +20,12 @@ export default function Navbar() {
     router.push("/login");
   };
 
+  const role = Cookies.get("aegis_role");
   const navLinks = [
-    { name: "Patient Portal", href: "/patient", icon: Mic },
-    { name: "Clinical Queue", href: "/doctor", icon: Users },
-    { name: "Epidemic Radar", href: "/admin/outbreaks", icon: Radar },
-  ];
+    { name: "Patient Portal", href: "/patient", icon: Mic, roles: ["PATIENT", "DOCTOR", "ADMIN"] },
+    { name: "Clinical Queue", href: "/doctor", icon: Users, roles: ["DOCTOR", "ADMIN"] },
+    { name: "Epidemic Radar", href: "/admin/outbreaks", icon: Radar, roles: ["ADMIN"] },
+  ].filter(link => !link.roles || (role && link.roles.includes(role)));
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-white/5 bg-slate-950/60 backdrop-blur-xl">
