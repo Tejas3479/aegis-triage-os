@@ -89,3 +89,17 @@ export async function fetchOutbreakClusters(): Promise<OutbreakCluster[]> {
     };
   });
 }
+
+export async function downloadEHRPdf(sessionId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/v1/reports/download/${sessionId}`);
+  if (!res.ok) throw new Error('PDF Generation pending or failed.');
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `AEGIS_EHR_${sessionId.substring(0,8)}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}

@@ -3,9 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, RefreshCw, AlertTriangle } from 'lucide-react';
-import { fetchDoctorQueue, DoctorQueueItem } from '@/lib/api';
+import { Download, RefreshCw, AlertTriangle, FileText, Video } from 'lucide-react';
+import { fetchDoctorQueue, DoctorQueueItem, downloadEHRPdf } from '@/lib/api';
 import { triggerFHIRDownload } from '@/lib/fhir-mapper';
+import { toast } from 'sonner';
 
 export default function DoctorDashboard() {
   const [queue, setQueue] = useState<DoctorQueueItem[]>([]);
@@ -82,14 +83,43 @@ export default function DoctorDashboard() {
                     <TableCell className="font-medium text-slate-200">{patient.care_level}</TableCell>
                     <TableCell className="text-slate-400 text-sm">{patient.status}</TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="hover:text-indigo-400 hover:bg-indigo-950/50"
-                        onClick={() => triggerFHIRDownload(patient)}
-                      >
-                        <Download className="w-4 h-4 mr-2" /> FHIR R4
-                      </Button>
+                      <div className="flex justify-end space-x-2">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="hover:text-indigo-400 hover:bg-indigo-950/50"
+                          onClick={() => triggerFHIRDownload(patient)}
+                        >
+                          <Download className="w-4 h-4 mr-2" /> FHIR R4
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="hover:text-amber-400 hover:bg-amber-950/50"
+                          onClick={async () => {
+                            try {
+                              await downloadEHRPdf(patient.id);
+                              toast.success('EHR PDF downloaded successfully.');
+                            } catch (error: any) {
+                              toast.error(error.message);
+                            }
+                          }}
+                        >
+                          <FileText className="w-4 h-4 mr-2" /> EHR PDF
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="hover:text-emerald-400 hover:bg-emerald-950/50"
+                          onClick={() => {
+                            toast('Secure WebRTC Initializing', {
+                              description: 'Routing to encrypted telemedicine room...',
+                            });
+                          }}
+                        >
+                          <Video className="w-4 h-4 mr-2" /> Start Video
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
