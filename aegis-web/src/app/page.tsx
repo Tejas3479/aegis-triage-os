@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Mic, ShieldCheck, Activity, Github, ArrowRight } from 'lucide-react';
+import { Mic, ShieldCheck, Activity, Code, ArrowRight } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -21,7 +21,7 @@ export default function LandingPage() {
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
         >
-          <Github className="w-4 h-4" />
+          <Code className="w-4 h-4" />
           <span>GitHub</span>
         </a>
       </header>
