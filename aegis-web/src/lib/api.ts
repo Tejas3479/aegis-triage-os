@@ -7,6 +7,7 @@ import {
   AuthResponse,
   RegisterResponse
 } from "@/types";
+import Cookies from "js-cookie";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -22,7 +23,7 @@ class ApiError extends Error {
  * Handles base URL, auth headers, and consistent error parsing.
  */
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}, timeout = 10000): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('aegis_token') : null;
+  const token = Cookies.get('aegis_token');
   
   const headers = new Headers(options.headers);
   if (token) {
@@ -90,7 +91,7 @@ export async function fetchOutbreakClusters(): Promise<OutbreakCluster[]> {
 }
 
 export async function downloadEHRPdf(sessionId: string): Promise<void> {
-  const token = localStorage.getItem('aegis_token');
+  const token = Cookies.get('aegis_token');
   const res = await fetch(`${API_BASE}/api/v1/reports/download/${sessionId}`, {
     headers: token ? { 'Authorization': `Bearer ${token}` } : {}
   });

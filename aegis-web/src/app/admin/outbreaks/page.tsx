@@ -6,10 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Radar, AlertOctagon, Activity, MapPin, RefreshCw } from 'lucide-react';
-import { fetchOutbreakClusters, OutbreakCluster } from '@/lib/api';
-import { toast } from 'sonner';
+import { fetchOutbreakClusters } from '@/lib/api';
+import { toast } from "sonner";
+import Cookies from "js-cookie";
+import { useSessionTimeout } from "../../../hooks/useSessionTimeout";
+import { OutbreakCluster } from '@/types';
 
 export default function CommandCenter() {
+  useSessionTimeout();
   const [clusters, setClusters] = useState<OutbreakCluster[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -17,7 +21,7 @@ export default function CommandCenter() {
 
   // Route Guard
   useEffect(() => {
-    const token = localStorage.getItem('aegis_token');
+    const token = Cookies.get('aegis_token');
     if (!token) {
       router.push('/login');
     }

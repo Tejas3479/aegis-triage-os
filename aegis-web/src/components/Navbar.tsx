@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ShieldCheck, Activity, Users, LogOut, Radar, Mic } from "lucide-react";
+import Cookies from "js-cookie";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -14,7 +15,7 @@ export default function Navbar() {
   if (hideNavbar) return null;
 
   const handleLogout = () => {
-    localStorage.removeItem("aegis_token");
+    Cookies.remove("aegis_token");
     router.push("/login");
   };
 
