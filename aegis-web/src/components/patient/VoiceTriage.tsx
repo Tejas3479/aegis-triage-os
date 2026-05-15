@@ -6,11 +6,12 @@ import { postAudioTriage, TriageResponse } from '@/lib/api';
 
 interface VoiceTriageProps {
   sessionId: string;
+  onProcessingStart?: () => void;
   onAnalysisReceived: (data: TriageResponse) => void;
   onError: (message: string) => void;
 }
 
-export const VoiceTriage: React.FC<VoiceTriageProps> = ({ sessionId, onAnalysisReceived, onError }) => {
+export const VoiceTriage: React.FC<VoiceTriageProps> = ({ sessionId, onProcessingStart, onAnalysisReceived, onError }) => {
   const [recording, setRecording] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -35,6 +36,7 @@ export const VoiceTriage: React.FC<VoiceTriageProps> = ({ sessionId, onAnalysisR
 
       mediaRecorder.onstop = async () => {
         setProcessing(true);
+        if (onProcessingStart) onProcessingStart();
         const audioBlob = new Blob(audioChunksRef.current, { type: options?.mimeType || 'audio/wav' });
         try {
           const outputResult = await postAudioTriage(audioBlob, sessionId);

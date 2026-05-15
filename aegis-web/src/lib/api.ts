@@ -7,6 +7,17 @@ import {
   AuthResponse,
   RegisterResponse
 } from "@/types";
+
+export type { 
+  TriageResponse, 
+  DoctorQueueItem, 
+  OutbreakCluster, 
+  HDBSCANResponse, 
+  MentalHealthResponse,
+  AuthResponse,
+  RegisterResponse
+};
+
 import Cookies from "js-cookie";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -55,6 +66,29 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}, timeout 
 }
 
 export async function postAudioTriage(audioBlob: Blob, sessionId: string): Promise<TriageResponse> {
+  let token = Cookies.get('aegis_token');
+  
+  // Task 2: Anonymous Token Acquisition for Patients
+  if (!token) {
+    try {
+      const authRes = await fetch(`${API_BASE}/api/v1/auth/anonymous`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+      const authData = await authRes.json();
+      if (authData.access_token) {
+        Cookies.set('aegis_token', authData.access_token, { 
+          secure: process.env.NODE_ENV === 'production', 
+          sameSite: 'strict', 
+          expires: 1/12 // 2 hours
+        });
+      }
+    } catch (err) {
+      console.error("Anonymous authentication failed:", err);
+    }
+  }
+
   const formData = new FormData();
   formData.append('file', audioBlob, 'triage_audio.wav');
   formData.append('session_id', sessionId);
@@ -63,6 +97,36 @@ export async function postAudioTriage(audioBlob: Blob, sessionId: string): Promi
     method: 'POST',
     body: formData
   }, 30000); // 30s for ML inference
+}
+
+export async function postChatTriage(message: string, sessionId: string): Promise<TriageResponse> {
+  let token = Cookies.get('aegis_token');
+  
+  if (!token) {
+    try {
+      const authRes = await fetch(`${API_BASE}/api/v1/auth/anonymous`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+      const authData = await authRes.json();
+      if (authData.access_token) {
+        Cookies.set('aegis_token', authData.access_token, { 
+          secure: process.env.NODE_ENV === 'production', 
+          sameSite: 'strict', 
+          expires: 1/12
+        });
+      }
+    } catch (err) {
+      console.error("Anonymous authentication failed:", err);
+    }
+  }
+
+  return apiFetch<TriageResponse>('/api/v1/triage/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, session_id: sessionId })
+  }, 30000);
 }
 
 export async function fetchDoctorQueue(): Promise<DoctorQueueItem[]> {
@@ -74,7 +138,7 @@ export async function fetchOutbreakClusters(): Promise<OutbreakCluster[]> {
   const clusters = rawData.clusters || [];
   
   // Adapter Pattern: Map backend "density_count" to frontend risk schema
-  return clusters.map((c) => {
+  return clusters.map((c: any) => {
     let risk: 'CRITICAL' | 'WARNING' | 'MONITOR' = 'MONITOR';
     if (c.density_count > 15) risk = 'CRITICAL';
     else if (c.density_count > 5) risk = 'WARNING';

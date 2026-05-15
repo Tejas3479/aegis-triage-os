@@ -10,6 +10,8 @@ from app.services.graph_engine import graph_engine
 from app.workers.tasks import compile_health_report
 from app.services.pii_vault import pii_vault
 from app.core.auth import get_current_user
+from app.services.database import db_client
+from app.models.schemas import CareLevel
 
 router = APIRouter()
 logger = logging.getLogger("aegis_core")
@@ -88,6 +90,22 @@ async def process_voice_triage(
 
         # 6. Post-Processing & Background Reporting
         background_tasks.add_task(compile_health_report, str(session_id))
+
+        # 7. Persist Clinical Outcome (Finding 3.1)
+        try:
+            analysis_data = result.get("analysis", {})
+            await asyncio.to_thread(
+                db_client.client.table("triage_sessions").upsert({
+                    "id": str(session_id),
+                    "patient_hash": "ANON_" + str(session_id)[:8],
+                    "care_level": analysis_data.care_level if hasattr(analysis_data, 'care_level') else "UNKNOWN",
+                    "risk_score": analysis_data.risk_score if hasattr(analysis_data, 'risk_score') else 0,
+                    "status": "ACTIVE",
+                    "summary": analysis_data.guidance_notes if hasattr(analysis_data, 'guidance_notes') else ""
+                }).execute()
+            )
+        except Exception as db_err:
+            logger.warning(f"Failed to persist triage outcome to database: {str(db_err)}")
 
         analysis_data = result.get("analysis", {})
         if hasattr(analysis_data, "model_dump"):

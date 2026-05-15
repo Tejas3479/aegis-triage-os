@@ -2,6 +2,7 @@ import hmac
 import asyncio
 import hashlib
 import logging
+import json
 from fastapi import APIRouter, Header, HTTPException, Request
 from typing import Annotated, Dict, Any
 from app.core.config import settings
@@ -15,12 +16,12 @@ logger = logging.getLogger("aegis_core")
 @router.post("/webhook")
 async def receive_vital_monitoring(
     request: Request,
-    payload: dict,
     x_signature: Annotated[str, Header()] = None
 ):
     """
     Cryptographically signed webhook receivers for vital monitoring.
     Verifies HMAC-SHA256 signatures for production security.
+    Resolved: Double-body-read exception by manual JSON parsing.
     """
     if not x_signature:
         raise HTTPException(status_code=401, detail="Missing cryptographic signature")
@@ -37,15 +38,19 @@ async def receive_vital_monitoring(
         logger.warning(f"Invalid webhook signature attempt from {request.client.host}")
         raise HTTPException(status_code=403, detail="Invalid cryptographic signature")
     
-    # 2. Process Vitals (Scaffolded)
-    logger.info(f"Vitals received for patient: {payload.get('patient_id')}")
-    return {"status": "verified_and_processed", "vitals_received": True}
+    # 2. Process Vitals
+    try:
+        payload = json.loads(body)
+        logger.info(f"Vitals verified and received for patient: {payload.get('patient_id')}")
+        return {"status": "verified_and_processed", "vitals_received": True}
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
 @router.post("/sync")
 async def sync_wearable_data(payload: Dict[str, Any]):
     """
     Advanced Wearables Integration: Syncs real-time vitals into the active LangGraph state.
-    Triggers immediate clinical interception for critical thresholds.
+    Resolved: Database execution bug (missing parentheses on .execute()).
     """
     session_id = payload.get("session_id")
     heart_rate = payload.get("heart_rate")
@@ -71,11 +76,12 @@ async def sync_wearable_data(payload: Dict[str, Any]):
             emergency_triggered = True
             
             # Update DB triage session to EMERGENCY_ROOM
+            # Fixed: Added () to execute() to ensure the query actually runs.
             await asyncio.to_thread(
                 db_client.client.table("triage_sessions")
                 .update({"care_level": CareLevel.EMERGENCY_ROOM, "risk_score": 100})
                 .eq("id", session_id)
-                .execute
+                .execute()
             )
             
             # Inject emergency flag into the graph state

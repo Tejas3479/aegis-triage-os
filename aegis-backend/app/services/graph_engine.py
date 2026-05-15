@@ -67,14 +67,14 @@ class GraphEngine:
         Aggregates active user messages, history, and patient profile into a clinical prompt.
         """
         history_str = "\n".join([f"{m['role']}: {m['content']}" for m in state.get("chat_history", [])])
-        profile = state.get("profile")
+        profile = state.get("profile", {})
         
         clinical_dossier = f"""
         [PATIENT PROFILE]
-        Age: {profile.age}
-        Gender: {profile.gender}
-        History: {', '.join(profile.medical_history)}
-        Vitals: {profile.vitals.model_dump() if profile.vitals else 'N/A'}
+        Age: {profile.get('age', 'Unknown')}
+        Gender: {profile.get('gender', 'Unknown')}
+        History: {', '.join(profile.get('medical_history', []))}
+        Vitals: {profile.get('vitals', 'N/A')}
         
         [CONVERSATIONAL HISTORY]
         {pii_vault.redact_input(history_str)}

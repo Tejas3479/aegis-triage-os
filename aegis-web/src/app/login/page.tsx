@@ -20,7 +20,11 @@ export default function LoginPage() {
 
     try {
       const token = await loginDoctor(username, pin);
-      Cookies.set('aegis_token', token, { secure: true, sameSite: 'strict', expires: 1 });
+      Cookies.set('aegis_token', token, { 
+        secure: process.env.NODE_ENV === 'production', 
+        sameSite: 'strict', 
+        expires: 1 
+      });
       toast.success("Authentication successful. Welcome back, Doctor.");
       router.push("/doctor");
     } catch (err: unknown) {

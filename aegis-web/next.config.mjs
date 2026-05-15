@@ -9,11 +9,7 @@ const pwaConfig = withPWA({
   reloadOnOnline: true,
   fallbacks: { document: '/~offline' },
   workboxOptions: { 
-    runtimeCaching: [{ 
-      urlPattern: /^https:\/\/.*\.onrender\.com\/api\/v1\/.*/, 
-      handler: 'NetworkFirst', 
-      options: { cacheName: 'api-cache', expiration: { maxEntries: 100 }, networkTimeoutSeconds: 8 } 
-    }] 
+    runtimeCaching: [] 
   }
 });
 

@@ -62,3 +62,18 @@ async def register_user(request: RegisterRequest):
     }
     
     return {"message": "Clinical account provisioned securely."}
+
+class AnonymousRequest(BaseModel):
+    session_id: str
+
+@router.post("/anonymous")
+async def issue_anonymous_token(request: AnonymousRequest):
+    """
+    Issues a short-lived, session-scoped token for anonymous patient triage.
+    """
+    access_token_expires = timedelta(hours=2)
+    access_token = create_access_token(
+        data={"sub": f"patient_{request.session_id}", "role": "PATIENT", "session_id": request.session_id},
+        expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer", "role": "PATIENT"}
