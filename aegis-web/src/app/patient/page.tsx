@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { OfflineBanner } from '@/components/patient/OfflineBanner';
 import { VoiceTriage } from '@/components/patient/VoiceTriage';
+import { MentalHealthCard } from '@/components/patient/MentalHealthCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { TriageResponse } from '@/lib/api';
@@ -102,8 +103,14 @@ export default function PatientTriageApp() {
         </div>
       </ScrollArea>
 
-      {/* Voice Input Area */}
-      <VoiceTriage sessionId={sessionId} onAnalysisReceived={handleAnalysisReceived} onError={handleError} />
+      <div className="border-t border-slate-900 bg-slate-950 p-4 space-y-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-20">
+        {/* Voice Input Area */}
+        <div className="flex justify-center border-b border-slate-900 pb-4">
+          <VoiceTriage sessionId={sessionId} onAnalysisReceived={handleAnalysisReceived} onError={handleError} />
+        </div>
+        {/* Mental Health Assessment */}
+        <MentalHealthCard sessionId={sessionId} />
+      </div>
     </div>
   );
 }

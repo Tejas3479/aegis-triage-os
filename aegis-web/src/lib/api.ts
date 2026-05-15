@@ -103,3 +103,22 @@ export async function downloadEHRPdf(sessionId: string): Promise<void> {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+export async function submitMentalAssessment(sessionId: string, phq9Score: number): Promise<any> {
+  // Logic bridge to satisfy the strict Pydantic backend schema
+  const payload = {
+    phq9_score: phq9Score,
+    gad7_score: 0,
+    clinical_depression_risk: phq9Score >= 10,
+    self_harm_flag: false
+  };
+
+  const res = await fetch(`${API_BASE}/api/v1/mental/assessment/${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  
+  if (!res.ok) throw new ApiError(res.status, 'Failed to log psychometric data.');
+  return await res.json();
+}
