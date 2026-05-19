@@ -37,6 +37,9 @@ def test_health_endpoint(
     # Mock Redis client
     mock_redis = MagicMock()
     mock_redis.ping.return_value = True
+    mock_pipe = MagicMock()
+    mock_pipe.execute.return_value = [0, 1]
+    mock_redis.pipeline.return_value = mock_pipe
     original_get_redis = rate_limit._get_redis_client
     rate_limit._get_redis_client = lambda: mock_redis
 
