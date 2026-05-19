@@ -5,7 +5,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
-from app.services.database import db_client
+from app.core.database import db_client
 
 logger = logging.getLogger("aegis_core")
 REPORTS_DIR = "storage/reports"
@@ -157,3 +157,4 @@ def compile_health_report(session_id: str):
     except Exception as e:
         logger.error("EHR Compilation failed: %s", e)
         return False
+

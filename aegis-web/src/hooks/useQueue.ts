@@ -24,7 +24,10 @@ export function useQueue(refreshInterval = 10000) {
   }, []);
 
   useEffect(() => {
-    loadQueue();
+    const syncQueue = async () => {
+      await loadQueue();
+    };
+    syncQueue();
     const interval = setInterval(() => loadQueue(true), refreshInterval);
     return () => clearInterval(interval);
   }, [loadQueue, refreshInterval]);

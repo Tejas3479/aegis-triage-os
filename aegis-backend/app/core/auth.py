@@ -1,6 +1,7 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
+import time
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -11,6 +12,9 @@ from app.core.config import settings
 # Security Configuration
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
+
+_JWKS_CACHE = None
+_JWKS_EXPIRE = 0
 
 class TokenData(BaseModel):
     username: Optional[str] = None
@@ -27,9 +31,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
@@ -37,12 +41,60 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     """
     Dependency to validate JWT tokens and extract user identity.
+    Supports Clerk JWTs if CLERK_JWKS_URL is configured.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    # Try Clerk verification if URL is set
+    clerk_url = settings.CLERK_JWKS_URL
+    if clerk_url:
+        try:
+            import httpx
+            global _JWKS_CACHE, _JWKS_EXPIRE
+            
+            jwks = None
+            if _JWKS_CACHE and time.time() < _JWKS_EXPIRE:
+                jwks = _JWKS_CACHE
+            else:
+                async with httpx.AsyncClient() as client:
+                    res = await client.get(clerk_url)
+                    if res.status_code == 200:
+                        _JWKS_CACHE = res.json()
+                        _JWKS_EXPIRE = time.time() + 3600  # 1 hour cache
+                        jwks = _JWKS_CACHE
+            
+            if jwks:
+                unverified_header = jwt.get_unverified_header(token)
+                kid = unverified_header.get('kid')
+                
+                key = None
+                for k in jwks.get('keys', []):
+                    if str(k.get('kid')).lower() == str(kid).lower():
+                        key = k
+                        break
+                    
+                    if key:
+                        payload = jwt.decode(token, key, algorithms=['RS256'])
+                        username: str = payload.get("sub")
+                        # Clerk tokens might not have role, default to DOCTOR for verified users
+                        role: str = payload.get("role") or "DOCTOR"
+                        session_id: Optional[str] = payload.get("session_id")
+                        
+                        return User(
+                            username=username,
+                            role=role,
+                            session_id=session_id,
+                        )
+        except Exception as e:
+            print(f"Clerk verification failed: {e}")
+            # Fallback to normal verification below
+            pass
+
+    # Normal verification (Fallback)
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
@@ -50,14 +102,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         session_id: Optional[str] = payload.get("session_id")
         if username is None or role is None:
             raise credentials_exception
-        token_data = TokenData(username=username, role=role)
+        return User(
+            username=username,
+            role=role,
+            session_id=session_id,
+        )
     except JWTError:
         raise credentials_exception
-    return User(
-        username=token_data.username,
-        role=token_data.role,
-        session_id=session_id,
-    )
 
 
 def assert_session_access(current_user: User, session_id: str) -> None:

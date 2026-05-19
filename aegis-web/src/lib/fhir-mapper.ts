@@ -28,7 +28,15 @@ export function generateFHIRObservation(sessionData: FHIRSessionData): object {
   };
 }
 
+import Cookies from 'js-cookie';
+
 export function triggerFHIRDownload(sessionData: FHIRSessionData): void {
+  const role = Cookies.get('aegis_role');
+  if (role !== 'DOCTOR' && role !== 'ADMIN') {
+    alert("Unauthorized. Only Doctors and Admins can export FHIR data.");
+    return;
+  }
+
   const fhirPayload = generateFHIRObservation(sessionData);
   const blob = new Blob([JSON.stringify(fhirPayload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);

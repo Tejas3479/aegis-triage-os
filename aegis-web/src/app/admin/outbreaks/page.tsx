@@ -7,13 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Radar, AlertOctagon, Activity, MapPin, RefreshCw } from 'lucide-react';
 import { fetchOutbreakClusters } from '@/lib/api';
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import Cookies from "js-cookie";
-import { useSessionTimeout } from "../../../hooks/useSessionTimeout";
+// import { useSessionTimeout } from "../../../hooks/useSessionTimeout";
 import { OutbreakCluster } from '@/types';
+import { ClinicalBadge } from '@/components/ui/clinical-badge';
 
 export default function CommandCenter() {
-  useSessionTimeout();
   const [clusters, setClusters] = useState<OutbreakCluster[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -33,22 +33,23 @@ export default function CommandCenter() {
       const data = await fetchOutbreakClusters();
       // Sort CRITICAL clusters to the top
       const sorted = data.sort((a, b) => {
-        const riskWeight = { CRITICAL: 3, WARNING: 2, MONITOR: 1 };
+        const riskWeight: Record<string, number> = { CRITICAL: 3, WARNING: 2, MONITOR: 1 };
         return riskWeight[b.risk_level] - riskWeight[a.risk_level];
       });
       setClusters(sorted);
       setLastUpdated(new Date());
-    } catch (error: unknown) {
-      toast.error("Network Disconnected", {
-        description: error instanceof Error ? error.message : "Sync failed."
-      });
+    } catch (error) {
+      console.error("Network Disconnected", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadClusters();
+    const init = async () => {
+      await loadClusters();
+    };
+    init();
     const interval = setInterval(loadClusters, 30000); // 30-second polling
     return () => clearInterval(interval);
   }, []);
@@ -57,26 +58,26 @@ export default function CommandCenter() {
   const criticalCount = clusters.filter(c => c.risk_level === 'CRITICAL').length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-8 font-sans">
+    <div className="min-h-screen bg-background text-foreground p-8 font-sans medical-grid">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header Section */}
-        <div className="flex justify-between items-center border-b border-slate-800 pb-6">
+        <div className="flex justify-between items-center border-b border-border pb-6">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-indigo-950/50 rounded-lg border border-indigo-500/30">
-              <Radar className="w-8 h-8 text-indigo-400 animate-pulse" />
+            <div className="p-3 bg-secondary rounded-lg border border-border">
+              <Radar className="w-8 h-8 text-primary animate-pulse" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tighter uppercase text-slate-100">Public Health Command</h1>
-              <p className="text-slate-400 text-sm font-mono mt-1">Geospatial HDBSCAN Epidemic Clustering System</p>
+              <h1 className="text-3xl font-bold tracking-tighter uppercase text-foreground">Public Health Command</h1>
+              <p className="text-muted-foreground text-sm font-mono mt-1">Geospatial HDBSCAN Epidemic Clustering System</p>
             </div>
           </div>
           <div className="flex items-center space-x-4">
             <div className="text-right">
-              <div className="text-xs text-slate-500 font-mono">LAST SYNC</div>
-              <div className="text-sm font-medium text-slate-300">{lastUpdated.toLocaleTimeString()}</div>
+              <div className="text-xs text-muted-foreground font-mono">LAST SYNC</div>
+              <div className="text-sm font-medium text-foreground">{lastUpdated.toLocaleTimeString()}</div>
             </div>
-            <Button onClick={loadClusters} variant="outline" className="border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200" disabled={loading}>
+            <Button onClick={loadClusters} variant="outline" className="border-border bg-card hover:bg-secondary text-foreground" disabled={loading}>
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Force Scan
             </Button>
@@ -85,62 +86,62 @@ export default function CommandCenter() {
 
         {/* Global Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider flex items-center">
-                <Activity className="w-4 h-4 mr-2 text-indigo-400" /> Total Active Cases
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center">
+                <Activity className="w-4 h-4 mr-2 text-primary" /> Total Active Cases
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold text-slate-100 font-mono">{totalCases}</div>
+              <div className="text-4xl font-bold text-foreground font-mono">{totalCases}</div>
             </CardContent>
           </Card>
           
-          <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider flex items-center">
-                <MapPin className="w-4 h-4 mr-2 text-emerald-400" /> Active Clusters
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center">
+                <MapPin className="w-4 h-4 mr-2 text-stable" /> Active Clusters
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold text-slate-100 font-mono">{clusters.length}</div>
+              <div className="text-4xl font-bold text-foreground font-mono">{clusters.length}</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider flex items-center">
-                <AlertOctagon className="w-4 h-4 mr-2 text-red-500" /> Critical Zones
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center">
+                <AlertOctagon className="w-4 h-4 mr-2 text-critical" /> Critical Zones
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold text-red-500 font-mono">{criticalCount}</div>
+              <div className="text-4xl font-bold text-critical font-mono">{criticalCount}</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Tactical Cluster Table */}
-        <Card className="bg-slate-900 border-slate-800 shadow-2xl">
+        <Card className="bg-card border-border shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg tracking-wide uppercase text-slate-200">Live Outbreak Topology</CardTitle>
-            <CardDescription className="text-slate-500 font-mono text-xs">Real-time geospatial aggregation mapping via backend vector analysis.</CardDescription>
+            <CardTitle className="text-lg tracking-wide uppercase text-foreground">Live Outbreak Topology</CardTitle>
+            <CardDescription className="text-muted-foreground font-mono text-xs">Real-time geospatial aggregation mapping via backend vector analysis.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border border-slate-800/60 overflow-hidden">
+            <div className="rounded-md border border-border overflow-hidden">
               <Table>
-                <TableHeader className="bg-slate-950/50">
-                  <TableRow className="border-slate-800">
-                    <TableHead className="text-slate-400 font-mono text-xs">CLUSTER ID</TableHead>
-                    <TableHead className="text-slate-400 font-mono text-xs">RISK LEVEL</TableHead>
-                    <TableHead className="text-slate-400 font-mono text-xs">DISEASE PATTERN</TableHead>
-                    <TableHead className="text-slate-400 font-mono text-xs">CASE DENSITY</TableHead>
-                    <TableHead className="text-slate-400 font-mono text-xs text-right">COORDINATES (LAT, LNG)</TableHead>
+                <TableHeader className="bg-secondary">
+                  <TableRow className="border-border">
+                    <TableHead className="text-muted-foreground font-mono text-xs">CLUSTER ID</TableHead>
+                    <TableHead className="text-muted-foreground font-mono text-xs">RISK LEVEL</TableHead>
+                    <TableHead className="text-muted-foreground font-mono text-xs">DISEASE PATTERN</TableHead>
+                    <TableHead className="text-muted-foreground font-mono text-xs">CASE DENSITY</TableHead>
+                    <TableHead className="text-muted-foreground font-mono text-xs text-right">COORDINATES (LAT, LNG)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {clusters.length === 0 && !loading && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10 text-slate-500 font-mono">No active epidemiological clusters detected.</TableCell>
+                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground font-mono">No active epidemiological clusters detected.</TableCell>
                     </TableRow>
                   )}
                   {clusters.map((cluster) => {
@@ -148,27 +149,26 @@ export default function CommandCenter() {
                     return (
                       <TableRow 
                         key={cluster.cluster_id} 
-                        className={`border-slate-800 ${isCritical ? 'bg-red-950/20 hover:bg-red-950/30' : 'hover:bg-slate-800/50'} transition-colors`}
+                        className={`border-border ${isCritical ? 'bg-critical/10 hover:bg-critical/20' : 'hover:bg-secondary/50'} transition-colors`}
                       >
-                        <TableCell className="font-mono text-sm text-slate-300">
+                        <TableCell className="font-mono text-sm text-foreground">
                           #{cluster.cluster_id.toString().padStart(4, '0')}
                         </TableCell>
                         <TableCell>
-                          <Badge 
-                            variant={isCritical ? 'destructive' : cluster.risk_level === 'WARNING' ? 'default' : 'secondary'}
-                            className={`font-mono text-[10px] tracking-wider uppercase ${isCritical ? 'animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)] border border-red-500' : ''}`}
-                          >
-                            {isCritical && <AlertOctagon className="w-3 h-3 mr-1 inline" />}
+                          <ClinicalBadge severity={
+                            cluster.risk_level === 'CRITICAL' ? 'critical' : 
+                            cluster.risk_level === 'WARNING' ? 'warning' : 'stable'
+                          }>
                             {cluster.risk_level}
-                          </Badge>
+                          </ClinicalBadge>
                         </TableCell>
-                        <TableCell className="font-medium text-slate-200">
+                        <TableCell className="font-medium text-foreground">
                           {cluster.disease_pattern}
                         </TableCell>
-                        <TableCell className="font-mono text-slate-300">
+                        <TableCell className="font-mono text-foreground">
                           {cluster.case_count}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-xs text-slate-400">
+                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
                           {cluster.center_latitude.toFixed(4)}, {cluster.center_longitude.toFixed(4)}
                         </TableCell>
                       </TableRow>

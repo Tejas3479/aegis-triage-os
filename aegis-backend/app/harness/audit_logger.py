@@ -1,5 +1,5 @@
 import logging
-from app.services.database import db_client
+from app.core.database import db_client
 
 logger = logging.getLogger("aegis_core")
 

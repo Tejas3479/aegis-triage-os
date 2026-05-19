@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.services.clinical_auth import authenticate_clinical_user, clinical_email
+from app.security.clinical_auth import authenticate_clinical_user, clinical_email
 
 
 def test_clinical_email_format():
@@ -22,8 +22,8 @@ def test_authenticate_from_table_success(mock_supabase_client):
         ]
     )
 
-    with patch("app.services.clinical_auth._authenticate_supabase", return_value=None), patch(
-        "app.services.clinical_auth.pwd_context.verify", return_value=True
+    with patch("app.security.clinical_auth._authenticate_supabase", return_value=None), patch(
+        "app.security.clinical_auth.pwd_context.verify", return_value=True
     ):
         user = authenticate_clinical_user("doctor_smith", "secret")
     assert user is not None
@@ -34,5 +34,5 @@ def test_authenticate_unknown_user(mock_supabase_client):
     mock_supabase_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
         data=[]
     )
-    with patch("app.services.clinical_auth._authenticate_supabase", return_value=None):
+    with patch("app.security.clinical_auth._authenticate_supabase", return_value=None):
         assert authenticate_clinical_user("nobody", "pass") is None

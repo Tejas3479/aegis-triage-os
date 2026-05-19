@@ -1,36 +1,49 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-function roleFromToken(token: string | undefined): string | null {
-  if (!token) return null;
+async function verifyToken(token: string): Promise<{valid: boolean, role: string} | null> {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
-    return typeof payload.role === 'string' ? payload.role : null;
+    const apiUrl = process.env.API_URL || 'http://localhost:8000';
+    const res = await fetch(`${apiUrl}/api/v1/auth/verify`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get('aegis_token')?.value;
-  const role = request.cookies.get('aegis_role')?.value ?? roleFromToken(token);
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/doctor')) {
+  if (pathname.startsWith('/doctor') || pathname.startsWith('/admin')) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
-    if (role && role !== 'DOCTOR' && role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/patient', request.url));
+    
+    const verification = await verifyToken(token);
+    if (!verification || !verification.valid) {
+      return NextResponse.redirect(new URL('/login', request.url));
     }
-  }
+    
+    const role = verification.role;
 
-  if (pathname.startsWith('/admin')) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
+    if (pathname.startsWith('/doctor')) {
+      if (role !== 'DOCTOR' && role !== 'ADMIN') {
+        return NextResponse.redirect(new URL('/patient', request.url));
+      }
     }
-    if (role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/doctor', request.url));
+
+    if (pathname.startsWith('/admin')) {
+      if (role !== 'ADMIN') {
+        return NextResponse.redirect(new URL('/doctor', request.url));
+      }
     }
   }
 

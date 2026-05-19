@@ -1,49 +1,60 @@
-# Aegis Triage OS: Enterprise Clinical AI Intelligence
+# Aegis Triage OS – Backend Engine
 
-Aegis Triage OS is a production-hardened, multi-modal AI engine designed for clinical triaging, psychometric assessment, and geospatial epidemic monitoring. Built for enterprise-grade healthcare deployments.
+Enterprise‑grade FastAPI backend for clinical triage, multi‑agent reasoning, and geospatial outbreak monitoring.
 
-## 🚀 Key Enterprise Features
+## Tech Stack
 
-- **Clinical AI Orchestration**: Multi-modal LangGraph execution pipeline with Gemini 1.5 Pro/Flash failover logic.
-- **Geospatial Outbreak Intelligence**: Unsupervised epidemic clustering using HDBSCAN with Haversine geospatial calculations.
-- **Enterprise Security**: 
-    - JWT-based Authentication & Role-Based Access Control (RBAC).
-    - PII Redaction Privacy Vault (Microsoft Presidio + Regex Fallback).
-    - Cryptographic Webhook Verification (HMAC-SHA256).
-- **Resilience & Observability**:
-    - Circuit Breaker & Exponential Backoff Retry patterns for external AI services.
-    - Structured logging with Request-ID tracing and latency monitoring.
-    - PII Leakage Prevention Middleware as a final safety rail.
-- **Clinical Data Governance**: DPDP-compliant consent logging and medical data encryption (Fernet).
+- **Framework**: FastAPI (async)
+- **AI Orchestration**: LangGraph + Google Gemini 2.5 (with fallback to OpenAI/Anthropic)
+- **Database**: Supabase (PostgreSQL) with Row Level Security
+- **PII Redaction**: Microsoft Presidio + regex fallback
+- **STT**: Vosk (local) / Gemini Cloud (optional)
+- **Reporting**: ReportLab PDF generation
+- **Spatial Clustering**: HDBSCAN with Haversine distance
 
-## 🛠️ Tech Stack
+## API Overview
 
-- **Framework**: FastAPI (Async Performance)
-- **AI/LLM**: Google GenAI (Gemini 1.5), LangGraph (Conversational State)
-- **Database**: Supabase / PostgreSQL (Geospatial Indexing)
-- **NLP/PII**: Microsoft Presidio, SpaCy (`en_core_web_lg`)
-- **Reporting**: ReportLab (Asynchronous EHR PDF Generation)
-- **Spatial**: Scikit-learn (HDBSCAN)
+| Prefix | Description |
+|--------|-------------|
+| `/api/v1/auth` | JWT authentication, role‑based access |
+| `/api/v1/patient` | DPDP consent, patient profile |
+| `/api/v1/triage` | Chat/voice triage, assessment submission |
+| `/api/v1/doctor` | Priority queue, report download, order approval |
+| `/api/v1/admin` | System settings (database‑backed) |
+| `/api/v1/public-health` | Outbreak cluster detection |
+| `/api/v2/clinical` | ICE (Interoperable Care‑Continuity) endpoints |
 
-## 📦 Deployment
+## Configuration
 
-### Local Setup
-1. Clone the repository.
-2. Create a `.env` file based on `.env.example`.
-3. Install dependencies: `pip install -r requirements.txt`
-4. Run the app: `uvicorn main:app --reload`
+Copy `.env.example` to `.env`. Critical variables:
 
-### Docker (Recommended)
+- `SUPABASE_URL`, `SUPABASE_KEY`
+- `GOOGLE_GENAI_API_KEY`
+- `SECRET_KEY` (generate with `openssl rand -hex 32`)
+- `ALLOWED_ORIGINS` (comma‑separated list of frontend URLs)
+- `HOSPITAL_PROVISIONING_CODE` (shared secret for doctor registration)
+- `STT_PROVIDER` (`local` or `cloud`)
+- `REDIS_URL` (optional, for distributed rate limiting)
+
+## Run Locally
+
 ```bash
-docker build -t aegis-triage-os .
-docker run -p 8000:8000 --env-file .env aegis-triage-os
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## 🔐 API Roles & Access
+## Docker
 
-- **PATIENT**: Access to triage and basic health reports.
-- **DOCTOR**: Access to priority queues and telemedicine routing.
-- **ADMIN**: Full access to geospatial outbreak dashboards and audit logs.
+```bash
+docker build -t aegis-backend .
+docker run -p 8000:8000 --env-file .env aegis-backend
+```
 
-## 📜 Medical Disclaimer
-Aegis OS is an AI assistant, not a replacement for professional medical diagnosis. All responses include a mandatory clinical disclaimer header.
+## Testing
+
+```bash
+pytest
+```
+
+## License
+
+Proprietary.

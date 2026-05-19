@@ -1,67 +1,88 @@
-# 🛡️ Aegis Triage OS: Enterprise AI Healthcare
+# 🛡️ Aegis Triage OS – Enterprise Clinical AI Platform
 
-[![Deploy Frontend](https://vercel.com/button)](https://vercel.com/new) [![Deploy Backend](https://render.com/images/deploy-to-render-button.svg)](https://render.com/)
+**Aegis Triage OS** is a production‑ready, multi‑modal AI clinical triage and decision support system. It bridges the gap between patients and clinicians by fusing real‑time voice ingestion, a LangGraph multi‑agent reasoning engine, and geospatial outbreak analytics.
 
-**Aegis Triage OS** is a production-grade, multimodal AI clinical triage engine engineered for the BMS AI Fusion Challenge. It solves the critical challenge of delayed emergency care and rural accessibility by fusing real-time voice ingestion, LangGraph clinical reasoning, and HDBSCAN geospatial outbreak tracking into a single, highly resilient Vercel-style architecture.
+## 🔧 Key Capabilities
 
-### 🔗 Live Links & Demo
-* **Live Patient PWA (Vercel):** `[INSERT_VERCEL_LINK]`
-* **Live Doctor Dashboard:** `[INSERT_VERCEL_LINK]/doctor`
-* **Admin Command Center:** `[INSERT_VERCEL_LINK]/admin/outbreaks`
-* **API Engine (Render):** `[INSERT_RENDER_LINK]`
-* **3-Minute Video Pitch:** `[INSERT_YOUTUBE_LINK]`
+- **Multi‑Modal Symptom Triage** – Voice and text input, transcribed via on‑premises STT (Vosk) or cloud fallback.
+- **Explainable Clinical Reasoning** – LangGraph “Clinical Council” with diagnostician, pharmacology, red‑team, and billing agents.
+- **Real‑Time Priority Queue** – Role‑based dashboard for doctors, sorted by algorithmic risk score.
+- **Geospatial Outbreak Detection** – HDBSCAN clustering of anonymized patient locations.
+- **Enterprise Security** – Zero‑trust JWT, PII redaction (Microsoft Presidio), DPDP consent logging.
+- **Offline Resilience** – Progressive Web App with IndexedDB queue for rural connectivity gaps.
+- **FHIR R4 Interoperability** – Export triage assessments as standard FHIR `Observation` resources.
 
----
+## 🚀 Quick Start (Development)
 
-## 🏆 Hackathon Rubric Fulfillment
+### Backend (FastAPI)
 
-### Core Objectives
-- [x] **Multimodal AI Symptom Triage:** Hardware-accelerated DSP audio ingestion processed by LangGraph & Gemini 2.5 Pro.
-- [x] **Algorithmic Risk Routing:** Deterministic severity indexing (0-100) dynamically routing critical cases over the clinical API.
-- [x] **Doctor Priority Queue:** Real-time, async-polling Next.js priority dashboard with magnetic glassmorphism UI.
-
-### Advanced Features & Enterprise Innovation
-- [x] **Predictive Geospatial Outbreak Analysis:** HDBSCAN vector clustering tracking epidemiological anomalies in real-time.
-- [x] **Zero-Trust JWT Gateway:** Military-grade OAuth2 token authentication locking down all clinical routes.
-- [x] **Psychometric Analysis (PHQ-9):** Dynamic mental health baseline assessments synced directly to patient triage profiles.
-- [x] **Automated EHR PDF Pipelines:** Asynchronous ThreadPool integration compiling structured medical histories into downloadable blobs.
-- [x] **Telemedicine WebRTC Integration:** Secure video intercept stubs enabling rural doctors to instantly connect with critical patients.
-- [x] **Ethical AI (PII Vault):** Microsoft Presidio integration proactively scrubbing all sensitive patient data prior to LLM inference.
-- [x] **Vercel-Grade UI/UX:** Stunning clinical interface featuring mathematically blurred frosted glass panels, glowing typography gradients, and responsive micro-interactions.
-
----
-
-## 📚 Technical Documentation & System Audits
-Dive deeper into our certified enterprise architecture:
-1. [System Architecture & LangGraph Pipeline](docs/ARCHITECTURE.md)
-2. [AI, NLP, & Privacy Models](docs/MODELS_AND_NLP.md)
-3. [Algorithmic Risk Scoring & XAI Transparency](docs/RISK_SCORING.md)
-4. [Deployment Guide](docs/DEPLOYMENT.md)
-5. [Frontend Baseline Audit](docs/FRONTEND_BASELINE_AUDIT.md)
-6. [Frontend Deep-Analysis Prompt](docs/FRONTEND_ANALYSIS_PROMPT.md) *(copy into Cursor for full UI review)*
-
----
-
-## 🚀 Local Deployment
-
-### 1. Backend Engine (FastAPI)
 ```bash
 cd aegis-backend
 python -m venv venv
-source venv/bin/activate  # Or `venv\Scripts\activate` on Windows
+source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-### 2. Frontend Cockpit (Next.js)
+### Frontend (Next.js PWA)
+
 ```bash
 cd aegis-web
 npm install
 npm run dev
 ```
 
-*Setup notes:*
-- Copy `aegis-backend/.env.example` → `aegis-backend/.env` and set secrets.
-- Download local STT model: `cd aegis-backend && python scripts/download_vosk_model.py`
-- Bootstrap clinical users via `BOOTSTRAP_ADMIN_PASSWORD` / `BOOTSTRAP_DOCTOR_PASSWORD` on first API start.
-- Register doctors with your `HOSPITAL_PROVISIONING_CODE` (default dev: `AEGIS-DEV-ONLY`).
+### Environment Setup
+
+Copy `.env.example` to `.env` and fill in:
+
+- `SUPABASE_URL`, `SUPABASE_KEY` – for PostgreSQL storage and auth.
+- `GOOGLE_GENAI_API_KEY` – for clinical reasoning (Gemini 2.5).
+- `SECRET_KEY`, `ALLOWED_ORIGINS` – security.
+- `HOSPITAL_PROVISIONING_CODE` – for doctor registration.
+- `STT_PROVIDER` – `local` (Vosk) or `cloud` (Gemini).
+- `MCP_AUTH_TOKEN` – secure bearer verification key for node cluster RPC authorizations.
+
+Run the Vosk model download script:
+
+```bash
+cd aegis-backend
+python scripts/download_vosk_model.py
+```
+
+## 🧪 Quality Verification & Testing
+
+Verify that both frontend and backend configurations are fully hardened and certified using our verification frameworks:
+
+### Backend Unit Tests (Pytest)
+```bash
+cd aegis-backend
+.\venv\Scripts\activate  # activate environment
+pytest                  # run all 22 core clinical nodes/auth tests
+```
+
+### Frontend Validation (Linting, TypeScript & Component Stories)
+```bash
+cd aegis-web
+npm run build           # execute production bundler & strict typecheck
+npm run storybook        # run component storybook workspace
+```
+
+## 📦 Production Deployment
+
+Refer to [DEPLOYMENT.md](docs/DEPLOYMENT.md) for Docker, Vercel (frontend), and Render (backend) configurations, as well as production checklist.
+
+## 📖 Documentation
+
+- [System Architecture](docs/ARCHITECTURE.md)
+- [AI & NLP Models](docs/MODELS_AND_NLP.md)
+- [Risk Scoring & Explainability](docs/RISK_SCORING.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+
+## 🏢 Enterprise Support
+
+For commercial licensing, on‑premises deployment, or custom model training, contact [enterprise@aegis.local](mailto:enterprise@aegis.local).
+
+## ⚖️ License
+
+Proprietary – all rights reserved.

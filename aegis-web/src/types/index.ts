@@ -1,10 +1,56 @@
+export interface AgentLog {
+  sender: string;
+  content: string;
+}
+
+export interface AIAnalysisOutput {
+  extracted_symptoms: string[];
+  severity_prediction: 'MILD' | 'MODERATE' | 'CRITICAL';
+  care_level: 'HOME_CARE' | 'CLINIC_VISIT' | 'EMERGENCY_ROOM';
+  clinical_reasoning: string;
+  guidance_notes: string;
+  emergency_detected: boolean;
+  risk_score: number;
+  mental_health_flag?: boolean;
+  detected_language: string;
+}
+
+export interface SOAPNote {
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+}
+
 export interface TriageResponse {
   session_id: string;
-  care_level: 'HOME_CARE' | 'CLINIC_VISIT' | 'EMERGENCY_ROOM';
-  guidance_notes: string;
-  extracted_symptoms: string[];
+  final_analysis: AIAnalysisOutput;
   telemedicine_url?: string;
-  status: string;
+  telemedicine_routing_required: boolean;
+  agent_logs: AgentLog[];
+  clinical_scribe_output?: SOAPNote;
+
+  auditable_encounter?: {
+    clinical_narrative_summary: string;
+    biomarker_variance_analysis: string;
+    active_drug_risks: {
+      medication_name: string;
+      contraindicated_condition: string;
+      severity_level: string;
+      pathophysiological_mechanism: string;
+    }[];
+    suggested_interventions: {
+      action_type: string;
+      target_chemical: string;
+      suggested_modification: string;
+      evidence_justification: string;
+    }[];
+    governing_pathway_references: {
+      issuing_body: string;
+      guideline_id: string;
+      recommendation_tier: string;
+    }[];
+  };
 }
 
 export interface DoctorQueueItem {
@@ -14,6 +60,9 @@ export interface DoctorQueueItem {
   risk_score: number;
   status: string;
   updated_at: string;
+  // ICE Enrichment
+  biomarker_variance?: string;
+  has_critical_risks?: boolean;
 }
 
 export interface HDBSCANResponse {

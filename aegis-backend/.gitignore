@@ -130,6 +130,9 @@ cython_debug/
 # AEGIS TRIAGE OS SPECIFIC CONFIGURATIONS
 # =======================================================
 
+# Admin Settings
+settings_config.json
+
 # 1. Multimodal Voice Ingestion (app/api/v1/triage.py)
 # Prevents committing temporary audio files saved via aiofiles
 *.wav

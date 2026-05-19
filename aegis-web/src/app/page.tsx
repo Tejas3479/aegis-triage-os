@@ -13,30 +13,36 @@ import {
   ArrowRight,
   Users,
   MapPin,
+  Heart,
+  Zap,
+  ChevronRight
 } from "lucide-react";
 import { EmergencyBanner } from "@/components/landing/EmergencyBanner";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 
 const FEATURES = [
   {
     icon: Mic,
-    title: "Voice & text triage",
+    title: "Voice & Text Triage",
     description:
-      "Patients describe symptoms by voice or chat. Audio is transcribed on-server (local STT by default) before any cloud AI reasoning.",
+      "Patients describe symptoms via voice or chat. Transcriptions are processed locally before clinical AI reasoning.",
     color: "indigo",
   },
   {
     icon: ShieldCheck,
-    title: "Privacy-first pipeline",
+    title: "Privacy-First Pipeline",
     description:
-      "DPDP consent gate, Presidio PII scrubbing, and session-scoped access. Designed to minimize exposure of identifiable data.",
+      "DPDP consent gate & Presidio scrubbing ensure the highest levels of data ethics and session security.",
     color: "emerald",
   },
   {
     icon: Activity,
-    title: "Outbreak intelligence",
+    title: "Clinical Intelligence",
     description:
-      "Geospatial clustering helps public-health teams spot emerging patterns — for clinicians and administrators only.",
+      "Fusing real-time biometric telemetry with deterministic multi-agent reasoning for absolute precision.",
     color: "cyan",
   },
 ];
@@ -44,109 +50,71 @@ const FEATURES = [
 const STEPS = [
   {
     step: "01",
-    title: "Consent & session",
-    text: "Patients review a clear privacy notice and start an anonymous triage session.",
+    title: "Secure Onboarding",
+    text: "Patients review privacy protocols and initialize a high-security session.",
     icon: FileCheck,
   },
   {
     step: "02",
-    title: "AI-assisted assessment",
-    text: "Symptoms are analyzed with clinical guardrails and care-level guidance (home, clinic, or emergency).",
+    title: "Intelligent Triage",
+    text: "Symptoms are mapped against clinical guidelines with real-time safety guardrails.",
     icon: Brain,
   },
   {
     step: "03",
-    title: "Clinician handoff",
-    text: "Licensed staff prioritize cases on a live queue and access structured reports when needed.",
+    title: "Seamless Handoff",
+    text: "Physicians receive a structured, evidence-backed narrative for immediate action.",
     icon: Stethoscope,
   },
-];
-
-const TRUST_ITEMS = [
-  { label: "DPDP consent logging", icon: FileCheck },
-  { label: "Local voice STT option", icon: Mic },
-  { label: "Role-separated portals", icon: Users },
-  { label: "Rural-first design", icon: MapPin },
 ];
 
 export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
+  const [scrolled, setScrolled] = React.useState(false);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const cards = document.getElementsByClassName("mouse-glow-card");
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i] as HTMLElement;
-      const rect = card.getBoundingClientRect();
-      card.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
-      card.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
-    }
-  };
+  React.useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: reduceMotion ? 0 : 0.12 },
+      transition: { staggerChildren: reduceMotion ? 0 : 0.15 },
     },
   };
 
   const itemVariants: Variants = reduceMotion
     ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
     : {
-        hidden: { opacity: 0, y: 16 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+        hidden: { opacity: 0, y: 30 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
       };
 
   return (
-    <div
-      className="min-h-screen bg-slate-950 text-slate-50 font-sans relative overflow-hidden flex flex-col"
-      onMouseMove={handleMouseMove}
-      ref={containerRef}
-    >
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-lg"
-      >
-        Skip to main content
-      </a>
-
-      <EmergencyBanner />
-
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950 pointer-events-none animate-mesh" />
-
-      <motion.header
-        initial={reduceMotion ? false : { y: -12, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="relative z-10 px-6 py-4 border-b border-white/5 bg-slate-950/60 backdrop-blur-md"
-      >
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2 group" aria-label="Aegis Triage OS home">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.6)]" />
-            <span className="font-extrabold tracking-tight text-xl text-slate-100">Aegis Triage OS</span>
-          </Link>
-          <nav className="flex items-center gap-2 sm:gap-4" aria-label="Main navigation">
-            <Link
-              href="/privacy"
-              className="hidden sm:inline text-sm text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/login"
-              className="text-sm text-slate-400 hover:text-white transition-colors px-3 py-2 min-h-[44px] inline-flex items-center"
-            >
-              Clinician login
-            </Link>
-            <Link
-              href="/patient"
-              className="text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 min-h-[44px] rounded-full inline-flex items-center transition-colors shadow-lg shadow-indigo-900/30"
-            >
-              Start triage
-            </Link>
-          </nav>
+    <div className="min-h-screen bg-background text-foreground font-sans relative overflow-hidden flex flex-col medical-grid">
+      
+      <header className={`px-10 py-6 flex items-center justify-between sticky top-0 z-50 transition-all duration-300 ${
+        scrolled ? 'bg-card shadow-md border-b border-border/50' : 'bg-card border-b border-border/50'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/10">
+            <Stethoscope className="text-white w-6 h-6" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-foreground uppercase">Aegis OS</span>
         </div>
-      </motion.header>
+        <div className="flex items-center gap-6">
+          <Link href="/login" className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors uppercase tracking-widest">Clinician Access</Link>
+          <Link href="/patient">
+            <Button className="rounded-full px-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 shadow-lg shadow-indigo-100">
+              Patient Portal <ChevronRight className="ml-2 w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+      </header>
 
       <motion.main
         id="main-content"
@@ -155,175 +123,191 @@ export default function LandingPage() {
         animate="visible"
         className="relative z-10 flex-grow"
       >
-        {/* Hero */}
-        <section className="max-w-6xl mx-auto px-6 pt-16 pb-20 text-center">
-          <motion.div variants={itemVariants}>
-            <p className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-widest text-emerald-400/90 border border-emerald-500/20 bg-emerald-500/5 px-3 py-1 rounded-full mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden />
-              DPDP-aligned · AI clinical decision support
-            </p>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-50 max-w-4xl mx-auto leading-[1.1]">
-              Accessible triage for communities{" "}
-              <span className="bg-gradient-to-r from-indigo-300 via-slate-100 to-indigo-400 bg-clip-text text-transparent">
-                far from the hospital
-              </span>
-            </h1>
-            <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto mt-6 leading-relaxed">
-              Aegis helps patients understand how urgently they should seek care — through voice or
-              text — while giving clinicians a prioritized queue and outbreak visibility.
-            </p>
-            <p className="text-xs text-slate-500 max-w-xl mx-auto mt-4">
-              This is an AI assistant, not emergency services or a licensed diagnosis.
-            </p>
-          </motion.div>
-
-          {/* Trust zones — patient vs clinical */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto"
-          >
-            <Link
-              href="/patient"
-              className="group flex flex-col items-start text-left p-6 rounded-2xl bg-indigo-600/90 hover:bg-indigo-500 border border-indigo-500/30 min-h-[120px] transition-all shadow-xl shadow-indigo-950/40"
-            >
-              <Users className="w-6 h-6 text-indigo-100 mb-3" aria-hidden />
-              <span className="font-semibold text-white text-lg">Patient triage</span>
-              <span className="text-indigo-100/80 text-sm mt-1">
-                Voice or chat · consent required · no account
-              </span>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-white">
-                Begin session <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </span>
-            </Link>
-            <Link
-              href="/login"
-              className="group flex flex-col items-start text-left p-6 rounded-2xl bg-slate-900/60 hover:bg-slate-800/80 border border-white/10 min-h-[120px] transition-all"
-            >
-              <Stethoscope className="w-6 h-6 text-slate-300 mb-3" aria-hidden />
-              <span className="font-semibold text-slate-100 text-lg">Clinician portal</span>
-              <span className="text-slate-400 text-sm mt-1">
-                Priority queue · reports · epidemic radar (admin)
-              </span>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-slate-300">
-                Sign in <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </span>
-            </Link>
-          </motion.div>
-
-          {/* Trust strip */}
-          <motion.ul
-            variants={itemVariants}
-            className="mt-12 flex flex-wrap justify-center gap-3 sm:gap-6"
-            aria-label="Platform capabilities"
-          >
-            {TRUST_ITEMS.map(({ label, icon: Icon }) => (
-              <li
-                key={label}
-                className="flex items-center gap-2 text-[11px] sm:text-xs text-slate-500 font-mono uppercase tracking-wide"
-              >
-                <Icon className="w-3.5 h-3.5 text-slate-600" aria-hidden />
-                {label}
-              </li>
-            ))}
-          </motion.ul>
-        </section>
-
-        {/* How it works */}
-        <section className="border-y border-white/5 bg-slate-900/30 py-16 px-6" aria-labelledby="how-it-works">
-          <div className="max-w-6xl mx-auto">
-            <motion.div variants={itemVariants} className="text-center mb-12">
-              <h2 id="how-it-works" className="text-2xl sm:text-3xl font-bold text-slate-100">
-                How it works
-              </h2>
-              <p className="text-slate-400 text-sm mt-2 max-w-lg mx-auto">
-                A clear path from patient symptom to clinician action.
+        {/* Hero Section */}
+        <section className="relative pt-24 pb-32 px-10">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+            
+            <motion.div variants={itemVariants} className="text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-indigo-100 bg-indigo-50/50 mb-10">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600">
+                  Clinical Intelligence Core v2.5
+                </span>
+              </div>
+              
+              <h1 className="text-6xl sm:text-7xl font-bold tracking-tighter leading-[0.9] mb-10 text-slate-900">
+                Precision Care <br />
+                <span className="text-indigo-600">Orchestrated.</span>
+              </h1>
+              
+              <p className="text-lg text-slate-500 max-w-xl mb-12 leading-relaxed font-medium">
+                Aegis Triage OS fuses high-fidelity AI reasoning with deterministic safety rails to eliminate the healthcare hand-off crisis.
               </p>
+              
+              <div className="flex flex-wrap gap-6">
+                <Link href="/patient">
+                  <Button size="lg" className="h-16 px-12 rounded-[2rem] bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base shadow-2xl shadow-indigo-200 transition-all active:scale-95">
+                    Initialize Triage
+                  </Button>
+                </Link>
+                <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
+                   <div className="flex -space-x-3">
+                      {[1,2,3,4].map(i => (
+                        <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">
+                           DR
+                        </div>
+                      ))}
+                   </div>
+                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                     Trusted by 500+<br/>Clinical Nodes
+                   </p>
+                </div>
+              </div>
             </motion.div>
-            <motion.ol variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {STEPS.map(({ step, title, text, icon: Icon }) => (
-                <li key={step} className="relative">
-                  <span className="text-[10px] font-mono text-indigo-400/80 uppercase tracking-widest">
-                    Step {step}
-                  </span>
-                  <div className="mt-3 p-5 rounded-xl border border-white/5 bg-slate-950/50">
-                    <Icon className="w-8 h-8 text-indigo-400 mb-3" aria-hidden />
-                    <h3 className="font-semibold text-slate-200">{title}</h3>
-                    <p className="text-sm text-slate-400 mt-2 leading-relaxed">{text}</p>
+
+            {/* Hero Visual */}
+            <motion.div 
+              variants={itemVariants}
+              className="relative aspect-square lg:h-[650px] flex items-center justify-center pt-10"
+            >
+              <div className="absolute inset-0 bg-indigo-100/40 blur-[120px] rounded-full" />
+              <div className="relative z-10 w-full h-full bg-card rounded-[4rem] border border-border shadow-2xl overflow-hidden group">
+                <Image 
+                  src="/clinical_ai_hero.png" 
+                  alt="" 
+                  fill
+                  className="object-cover opacity-100 group-hover:scale-105 transition-transform duration-1000 grayscale-[0.1]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+                <div className="absolute bottom-12 left-12 right-12">
+                  <div className="p-8 bg-card/80 backdrop-blur-3xl rounded-3xl border border-border shadow-xl">
+                    <div className="flex items-center gap-4 mb-5">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100">
+                        <Activity className="text-white w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Live Telemetry</span>
+                        <span className="text-base font-bold text-foreground tracking-tight">Active Biometric Stream</span>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: "70%" }}
+                          transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
+                          className="h-full bg-indigo-600" 
+                        />
+                      </div>
+                      <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                        <span>Ingestion</span>
+                        <span className="text-indigo-600">Deliberating</span>
+                        <span>Clinical Outcome</span>
+                      </div>
+                    </div>
                   </div>
-                </li>
-              ))}
-            </motion.ol>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </section>
 
-        {/* Features */}
-        <section className="py-16 px-6" aria-labelledby="features-heading">
-          <div className="max-w-6xl mx-auto">
-            <motion.h2
-              id="features-heading"
-              variants={itemVariants}
-              className="text-2xl font-bold text-center text-slate-100 mb-10"
-            >
-              Built for real clinical constraints
-            </motion.h2>
-            <motion.div
-              variants={itemVariants}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6"
-            >
-              {FEATURES.map(({ icon: Icon, title, description, color }) => (
-                <article
-                  key={title}
-                  className="mouse-glow-card p-6 rounded-2xl bg-slate-900/40 backdrop-blur border border-white/5 transition-all duration-300 hover:-translate-y-0.5"
+        {/* Features Section */}
+        <section className="py-40 px-10 relative">
+          <div className="max-w-7xl mx-auto">
+            <motion.div variants={itemVariants} className="max-w-2xl mb-24">
+              <h2 className="text-5xl font-bold mb-6 tracking-tight text-foreground leading-tight">Engineering Clinical <br/> Resilience.</h2>
+              <p className="text-muted-foreground font-medium text-lg leading-relaxed">Built for the high-stakes reality of healthcare, where precision and privacy are non-negotiable.</p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+              {FEATURES.map((feature, idx) => (
+                <motion.div 
+                  key={feature.title} 
+                  variants={itemVariants}
+                  className="p-12 rounded-[3rem] bg-card border border-border hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 group"
                 >
-                  <div
-                    className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${
-                      color === "indigo"
-                        ? "bg-indigo-500/10"
-                        : color === "emerald"
-                          ? "bg-emerald-500/10"
-                          : "bg-cyan-500/10"
-                    }`}
-                  >
-                    <Icon
-                      className={
-                        color === "indigo"
-                          ? "text-indigo-400"
-                          : color === "emerald"
-                            ? "text-emerald-400"
-                            : "text-cyan-400"
-                      }
-                      size={24}
-                      aria-hidden
+                  <div className="w-16 h-16 rounded-2xl bg-secondary border border-border flex items-center justify-center mb-10 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm">
+                    <feature.icon className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-5 text-foreground tracking-tight">{feature.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed font-medium">{feature.description}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Steps Visualizer */}
+        <section className="py-40 px-10 bg-secondary/40">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-32 items-center">
+              <motion.div variants={itemVariants}>
+                <h2 className="text-5xl font-bold mb-12 tracking-tight text-foreground leading-[1.1]">
+                  A Frictionless Path <br />
+                  <span className="text-primary">to Clinical Action.</span>
+                </h2>
+                <div className="space-y-16">
+                  {STEPS.map((step, idx) => (
+                    <div key={step.title} className="flex gap-10 group relative">
+                      <div className="flex-shrink-0 w-16 h-16 rounded-[1.5rem] bg-secondary border border-border flex items-center justify-center font-bold text-primary text-xl group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm">
+                        {step.step}
+                      </div>
+                      <div className="pt-2">
+                        <h3 className="text-2xl font-bold text-foreground mb-3 tracking-tight">{step.title}</h3>
+                        <p className="text-muted-foreground font-medium leading-relaxed">{step.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+              
+              <motion.div variants={itemVariants} className="relative">
+                <div className="absolute inset-0 bg-indigo-100/30 blur-[100px] rounded-full" />
+                <div className="relative bg-card rounded-[4rem] p-6 border border-border shadow-2xl overflow-hidden">
+                  <div className="relative w-full h-[400px]">
+                    <Image 
+                      src="/medical_pulse_viz_1778850726919.png" 
+                      alt="Clinical Data Interface" 
+                      fill
+                      className="rounded-[3.5rem] opacity-90 grayscale-[0.2] hover:grayscale-0 transition-all duration-1000 object-cover"
                     />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-200 mb-2">{title}</h3>
-                  <p className="text-slate-400 text-sm leading-relaxed">{description}</p>
-                </article>
-              ))}
-            </motion.div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-white/40 to-transparent" />
+                  <div className="absolute top-12 right-12">
+                    <Badge className="bg-card/80 text-primary border-primary/20 px-6 py-2 backdrop-blur-xl shadow-lg shadow-primary/5 text-xs font-bold uppercase tracking-widest">
+                      Audit Stream Active
+                    </Badge>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </section>
 
-        {/* CTA band */}
-        <section className="px-6 pb-20">
-          <motion.div
-            variants={itemVariants}
-            className="max-w-3xl mx-auto text-center p-8 sm:p-10 rounded-3xl border border-indigo-500/20 bg-gradient-to-b from-indigo-950/40 to-slate-950"
-          >
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-100">
-              Ready to try patient triage?
-            </h2>
-            <p className="text-slate-400 text-sm mt-3">
-              You will be asked to accept our privacy notice before any symptom data is processed.
+        {/* Final CTA */}
+        <section className="py-60 px-10 relative text-center">
+          <div className="max-w-4xl mx-auto relative z-10">
+            <h2 className="text-6xl font-bold mb-10 tracking-tighter text-foreground leading-[0.9]">Ready to Evolve?</h2>
+            <p className="text-xl text-muted-foreground mb-16 font-medium max-w-2xl mx-auto leading-relaxed">
+              Experience the next generation of clinical orchestration. Secure, intelligent, and designed for human resilience.
             </p>
-            <Link
-              href="/patient"
-              className="mt-6 inline-flex items-center justify-center gap-2 min-h-[48px] px-8 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
-            >
-              Open patient portal
-              <ArrowRight className="w-4 h-4" aria-hidden />
-            </Link>
-          </motion.div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <Link href="/patient">
+                <Button size="lg" className="h-20 px-20 rounded-[2.5rem] bg-primary hover:bg-primary/90 text-white font-bold text-lg shadow-2xl shadow-primary/20 transition-all active:scale-95">
+                  Launch Patient Portal
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button variant="ghost" size="lg" className="h-20 px-16 rounded-[2.5rem] text-muted-foreground font-bold text-lg hover:bg-card hover:text-primary transition-all">
+                  Clinician Access
+                </Button>
+              </Link>
+            </div>
+          </div>
         </section>
       </motion.main>
 

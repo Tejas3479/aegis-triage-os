@@ -1,0 +1,7 @@
+{
+  "name": "aegis-triage-os",
+  "private": true,
+  "workspaces": [
+    "aegis-web"
+  ]
+}

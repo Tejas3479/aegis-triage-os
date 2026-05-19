@@ -9,10 +9,12 @@ class Settings(BaseSettings):
     # Database Configurations
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "supabase.co")
     SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "your-service-role-key")
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     
     # GenAI Matrix
     GOOGLE_GENAI_API_KEY: str = os.getenv("GOOGLE_GENAI_API_KEY", "")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "") # Fallback mapping
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
     
     # CORS Origins (Crucial link between Vercel and Render)
     # Allows any Vercel preview deployment or localhost to access the API safely
@@ -37,6 +39,12 @@ class Settings(BaseSettings):
     CHECKPOINT_SQLITE_PATH: str = os.getenv(
         "CHECKPOINT_SQLITE_PATH", "storage/langgraph_checkpoints.db"
     )
+    
+    # MCP auth token configuration
+    MCP_AUTH_TOKEN: str = os.getenv("MCP_AUTH_TOKEN", "")
+
+    # Clerk OAuth JWKS endpoint for dynamic cloud authentication
+    CLERK_JWKS_URL: str = os.getenv("CLERK_JWKS_URL", "")
 
     model_config = SettingsConfigDict(env_file=".env")
 
@@ -52,5 +60,12 @@ def validate_production_settings() -> None:
         raise RuntimeError("ALLOWED_ORIGINS cannot be '*' in production.")
     if not settings.HOSPITAL_PROVISIONING_CODE:
         raise RuntimeError("HOSPITAL_PROVISIONING_CODE must be set in production.")
-    if settings.STT_PROVIDER.lower() == "local" and not settings.VOSK_MODEL_PATH:
-        raise RuntimeError("VOSK_MODEL_PATH must be set when STT_PROVIDER=local in production.")
+    import shutil
+    if settings.STT_PROVIDER.lower() == "local":
+        if not settings.VOSK_MODEL_PATH:
+            raise RuntimeError("VOSK_MODEL_PATH must be set when STT_PROVIDER=local in production.")
+        if not shutil.which("ffmpeg"):
+            raise RuntimeError("ffmpeg must be installed when STT_PROVIDER=local in production.")
+            
+    if not settings.REDIS_URL:
+        raise RuntimeError("REDIS_URL must be set in production.")

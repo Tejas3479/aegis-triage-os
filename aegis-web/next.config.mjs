@@ -9,7 +9,21 @@ const pwaConfig = withPWA({
   reloadOnOnline: true,
   fallbacks: { document: '/~offline' },
   workboxOptions: { 
-    runtimeCaching: [] 
+    runtimeCaching: [
+      // REMOVED the API caching rule entirely
+      // Keep only static asset caching
+      {
+        urlPattern: /\.(?:js|css|png|jpg|jpeg|svg|gif|woff2)$/,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'static-assets',
+          expiration: {
+            maxEntries: 100,
+            maxAgeSeconds: 30 * 24 * 60 * 60 // 30 days
+          }
+        }
+      }
+    ] 
   }
 });
 

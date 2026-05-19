@@ -1,5 +1,5 @@
 from app.models.schemas import CareLevel
-from app.services.triage_persistence import (
+from app.domains.triage.triage_persistence import (
     build_triage_response,
     normalize_care_level,
     normalize_risk_score,
@@ -19,7 +19,7 @@ def test_normalize_risk_score_caps_at_ten():
 
 def test_build_triage_response_shape():
     result = {
-        "analysis": {
+        "final_analysis": {
             "care_level": "HOME_CARE",
             "guidance_notes": "Rest and hydrate.",
             "extracted_symptoms": ["fever"],

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -7,25 +7,25 @@ export function useSessionTimeout(timeoutMs = 900000) { // Default 15 minutes
   const router = useRouter();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     Cookies.remove('aegis_token');
     toast("Session Expired", {
       description: "You have been logged out due to inactivity for security compliance.",
     });
     router.push('/login');
-  };
+  }, [router]);
 
-  const resetTimer = () => {
+  const resetTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(logout, timeoutMs);
-  };
+  }, [logout, timeoutMs]);
 
   useEffect(() => {
     // Initial timer setup
     resetTimer();
 
     // Listen for user interaction events
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'api-activity'];
     
     const handleActivity = () => resetTimer();
 
@@ -39,7 +39,7 @@ export function useSessionTimeout(timeoutMs = 900000) { // Default 15 minutes
         window.removeEventListener(event, handleActivity);
       });
     };
-  }, [timeoutMs, router]);
+  }, [resetTimer]);
 
   return { resetTimer };
 }

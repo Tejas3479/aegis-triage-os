@@ -1,4 +1,4 @@
-# Aegis Web — Baseline Frontend Audit (Verified)
+# Aegis Web – Frontend Baseline Audit (Production Readiness)
 
 This document compares **your actual frontend** (`aegis-web`) to patterns used by modern healthcare triage / telehealth apps (Next.js PWAs, HIPAA-aware React, offline-first clinical tools).
 

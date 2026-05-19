@@ -35,6 +35,8 @@ class PatientProfile(BaseModel):
     age: int = Field(..., ge=0, le=125)
     gender: Literal['M', 'F', 'O']
     medical_history: List[str] = Field(default_factory=list)
+    known_allergies: List[str] = Field(default_factory=list)
+    current_meds: List[str] = Field(default_factory=list)
     vitals: Optional[PatientVitals] = None
     latitude: float
     longitude: float
@@ -103,6 +105,32 @@ class ChatTriageRequest(BaseModel):
     session_id: str = Field(..., min_length=1)
 
 
+# --- PRECISION CLINICAL INTEROPERABILITY (ICE) SCHEMAS ---
+
+class ClinicalGuidelineReference(BaseModel):
+    issuing_body: str = Field(..., description="The medical governing organization, e.g., AHA, ADA, KDIGO.")
+    guideline_id: str = Field(..., description="Specific reference identifier or section notation.")
+    recommendation_tier: str = Field(..., description="The official level of evidence classification, e.g., Class I, Level A.")
+
+class DrugDiseaseInteraction(BaseModel):
+    medication_name: str = Field(..., description="The specific active pharmaceutical ingredient or molecule identified.")
+    contraindicated_condition: str = Field(..., description="The diagnosed pathology or physiological variable causing conflict.")
+    severity_level: str = Field(..., description="Risk tier: MINOR, MODERATE, or ABSOLUTE_CONTRAINDICATION.")
+    pathophysiological_mechanism: str = Field(..., description="Detailed explanation of the dangerous biological pathway or drug reaction.")
+
+class PrescriptiveActionOrder(BaseModel):
+    action_type: str = Field(..., description="The recommended action: ADJUST_DOSAGE, SUSPEND_MEDICATION, or ORDER_URGENT_LABS.")
+    target_chemical: str = Field(..., description="The specific medication name or laboratory marker target.")
+    suggested_modification: str = Field(..., description="Precise adjustment directive, e.g., 'Reduce Metformin to 500mg daily'.")
+    evidence_justification: str = Field(..., description="Traceable rationale based on patient data trends and guidelines.")
+
+class AuditableCareEncounter(BaseModel):
+    clinical_narrative_summary: str = Field(..., description="Synthesized, structured account of patient status and complaints.")
+    biomarker_variance_analysis: str = Field(..., description="Detailed explanation of physiological deviations from baselines.")
+    active_drug_risks: List[DrugDiseaseInteraction] = Field(..., description="Identified drug-drug or drug-disease interactions.")
+    suggested_interventions: List[PrescriptiveActionOrder] = Field(..., description="Actionable care recommendations prepared for review.")
+    governing_pathway_references: List[ClinicalGuidelineReference] = Field(..., description="Traceable medical guidelines supporting the decisions.")
+
 class TriageApiResponse(BaseModel):
     session_id: str
     care_level: str
@@ -111,3 +139,6 @@ class TriageApiResponse(BaseModel):
     telemedicine_url: Optional[str] = None
     status: str = "processed"
     transcription: Optional[str] = None
+    risk_score: int = 0
+    # ICE Expansion
+    auditable_encounter: Optional[AuditableCareEncounter] = None

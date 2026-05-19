@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { AlertTriangle, RefreshCw, ShieldAlert } from "lucide-react";
+import { RefreshCw, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Error({

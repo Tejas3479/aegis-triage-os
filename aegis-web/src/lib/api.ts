@@ -21,8 +21,7 @@ export type {
 };
 
 import Cookies from "js-cookie";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 const COOKIE_OPTS = {
   secure: process.env.NODE_ENV === 'production',
@@ -101,6 +100,9 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}, timeout 
       throw new ApiError(response.status, errorData.detail || 'Network response failure.');
     }
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('api-activity'));
+    }
     return await response.json() as T;
   } catch (error) {
     clearTimeout(id);
@@ -121,18 +123,26 @@ export async function postAudioTriage(audioBlob: Blob, sessionId: string): Promi
   }, 30000);
 }
 
-export async function postChatTriage(message: string, sessionId: string): Promise<TriageResponse> {
+export async function postChatTriage(content: string, sessionId: string): Promise<TriageResponse> {
   await ensurePatientToken(sessionId);
 
   return apiFetch<TriageResponse>('/api/v1/triage/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, session_id: sessionId })
+    body: JSON.stringify({ content, session_id: sessionId })
   }, 30000);
+}
+
+export async function sendMessage(sessionId: string, content: string): Promise<TriageResponse> {
+  return postChatTriage(content, sessionId);
 }
 
 export async function fetchDoctorQueue(): Promise<DoctorQueueItem[]> {
   return apiFetch<DoctorQueueItem[]>('/api/v1/doctor/queue', { cache: 'no-store' });
+}
+
+export async function fetchTriageOutcome(sessionId: string): Promise<TriageResponse> {
+  return await apiFetch<TriageResponse>(`/api/v1/triage/outcome/${sessionId}`);
 }
 
 export async function fetchOutbreakClusters(): Promise<OutbreakCluster[]> {
@@ -157,7 +167,7 @@ export async function fetchOutbreakClusters(): Promise<OutbreakCluster[]> {
 
 export async function downloadEHRPdf(sessionId: string): Promise<void> {
   const token = Cookies.get('aegis_token');
-  const res = await fetch(`${API_BASE}/api/v1/reports/download/${sessionId}`, {
+  const res = await fetch(`${API_BASE}/api/v1/doctor/sessions/${sessionId}/report/download`, {
     headers: token ? { 'Authorization': `Bearer ${token}` } : {}
   });
 
@@ -184,7 +194,7 @@ export async function submitMentalAssessment(sessionId: string, phq9Score: numbe
     self_harm_flag: false
   };
 
-  return apiFetch<MentalHealthResponse>(`/api/v1/mental/assessment/${sessionId}`, {
+  return apiFetch<MentalHealthResponse>(`/api/v1/triage/assessment/${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -218,47 +228,22 @@ export async function registerDoctor(username: string, pin: string, hospitalCode
 }
 
 export async function recordDpdpConsent(sessionId: string): Promise<ConsentResponse> {
-  const response = await fetch(`${API_BASE}/api/v1/consent/record`, {
+  return apiFetch<ConsentResponse>('/api/v1/patient/consent/record', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: sessionId }),
   });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new ApiError(response.status, err.detail || 'Consent recording failed.');
-  }
-  return response.json() as Promise<ConsentResponse>;
 }
 
 export async function checkConsentStatus(sessionId: string): Promise<ConsentResponse> {
-  const response = await fetch(`${API_BASE}/api/v1/consent/status/${sessionId}`);
-  if (!response.ok) {
-    return { status: 'unknown', session_id: sessionId, has_consent: false };
-  }
-  return response.json() as Promise<ConsentResponse>;
+  return apiFetch<ConsentResponse>(`/api/v1/patient/consent/status/${sessionId}`);
 }
 
 export async function revokeDpdpConsent(sessionId: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/api/v1/consent/revoke`, {
+  return apiFetch<void>('/api/v1/patient/consent/revoke', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: sessionId }),
   });
-  if (!response.ok) {
-    throw new ApiError(response.status, 'Could not revoke consent.');
-  }
 }
 
-export async function syncWearableData(sessionId: string, heartRate: number, spO2: number): Promise<unknown> {
-  await ensurePatientToken(sessionId);
-
-  return apiFetch('/api/v1/wearables/sync', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      session_id: sessionId,
-      heart_rate: heartRate,
-      spO2: spO2
-    })
-  });
-}

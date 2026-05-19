@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from app.core.auth import create_access_token
 from app.core.rate_limit import check_rate_limit
 from app.core.config import settings
-from app.services.clinical_auth import authenticate_clinical_user, register_clinical_user
+from app.security.clinical_auth import authenticate_clinical_user, register_clinical_user
 
 router = APIRouter()
 logger = logging.getLogger("aegis_core")
@@ -77,3 +77,10 @@ async def issue_anonymous_token(http_request: Request, request: AnonymousRequest
         expires_delta=timedelta(hours=2),
     )
     return {"access_token": access_token, "token_type": "bearer", "role": "PATIENT"}
+
+from app.core.auth import get_current_user, User
+
+@router.get("/verify")
+async def verify_token(current_user: User = Depends(get_current_user)):
+    """Verify token and return user role."""
+    return {"valid": True, "role": current_user.role, "username": current_user.username}

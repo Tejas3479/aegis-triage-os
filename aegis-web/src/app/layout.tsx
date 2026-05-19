@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import { Toaster } from "sonner";
+import { Navbar } from "@/components/layout/Navbar";
+import { Providers } from "@/components/layout/Providers";
+import { Analytics } from "@vercel/analytics/react";
+// import '@/lib/i18n';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "Aegis Triage OS",
   description: "Enterprise AI Clinical Triage & Epidemic Tracking",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -27,14 +27,21 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-slate-950 text-slate-50">
-        <Navbar />
-        {children}
-        <Toaster position="top-right" richColors theme="dark" />
+      <body className="min-h-full flex flex-col">
+        <Providers>
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 bg-primary text-primary-foreground px-4 py-2 rounded">
+            Skip to main content
+          </a>
+          <Navbar />
+          <main id="main-content" className="pt-16 flex-1">
+            {children}
+          </main>
+          <Analytics />
+        </Providers>
       </body>
     </html>
   );
 }
-

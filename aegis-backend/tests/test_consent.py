@@ -1,4 +1,4 @@
-from app.api.v1.consent import CONSENT_PURPOSES
+from app.api.v1.patient import CONSENT_PURPOSES
 
 
 def test_consent_purposes_defined():

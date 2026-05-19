@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./aegis-web/src/*"]
+    }
+  },
+  "include": ["aegis-web/**/*.ts", "aegis-web/**/*.tsx"],
+  "exclude": ["node_modules", "aegis-web/node_modules"]
+}

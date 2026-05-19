@@ -25,6 +25,7 @@ jobs:
           ENVIRONMENT: test
           SECRET_KEY: ci-test-secret
           ALLOWED_ORIGINS: http://localhost:3000
+          GOOGLE_GENAI_API_KEY: ${{ secrets.GOOGLE_GENAI_API_KEY }}
 
   frontend:
     runs-on: ubuntu-latest
